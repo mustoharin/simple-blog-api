@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,7 +50,10 @@ func (uc *RefreshUsecase) Execute(ctx context.Context, rawToken string) (Refresh
 
 	rt, err := uc.refreshTokens.GetByHash(ctx, tokenHash)
 	if err != nil {
-		return RefreshOutput{}, domain.ErrTokenNotFound
+		if errors.Is(err, domain.ErrNotFound) {
+			return RefreshOutput{}, domain.ErrTokenNotFound
+		}
+		return RefreshOutput{}, err
 	}
 
 	if rt.RevokedAt != nil || rt.ExpiresAt.Before(time.Now()) {

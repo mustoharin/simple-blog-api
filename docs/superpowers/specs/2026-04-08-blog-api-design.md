@@ -54,15 +54,17 @@ simple-blog-api/
 |---|---|---|
 | id | UUID | Primary key |
 | email | text | Unique |
-| password_hash | text | bcrypt |
+| password_hash | text | Nullable; null until invitation accepted |
 | display_name | text | Nullable; user's public name |
 | bio | text | Nullable; short biography |
 | avatar_url | text | Nullable; URL to profile image |
 | last_login_at | timestamptz | Nullable; updated on every successful login |
-| email_verified_at | timestamptz | Nullable; set on email verification; NULL = unverified (cannot login) |
+| status | enum | `pending_invitation` \| `active` \| `expired_invitation` |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 | deleted_at | timestamptz | Nullable; set on soft delete; NULL = active |
+
+Self-registered users (`POST /auth/register`) are created with `status = active`. Superadmin-invited users start as `pending_invitation` and transition to `active` on invitation acceptance.
 
 ### Role
 | Field | Type | Notes |
@@ -154,17 +156,17 @@ On refresh: old token is revoked and a new one is issued (rotation). On logout: 
 | expires_at | timestamptz | 1 hour from creation |
 | used_at | timestamptz | Nullable; set on consumption |
 
-### UserVerificationToken
+### InvitationToken
 | Field | Type | Notes |
 |---|---|---|
 | id | UUID | Primary key |
 | user_id | UUID | FK → User |
-| token_hash | text | SHA-256 of raw token |
-| type | enum | `email_verification` \| `invitation` |
+| token_hash | text | SHA-256 of the raw token |
 | expires_at | timestamptz | 24 hours from creation |
-| used_at | timestamptz | Nullable; set on consumption |
+| used_at | timestamptz | Nullable; set on acceptance |
+| created_at | timestamptz | |
 
-One active token per user per type. Issuing a new token for the same user+type invalidates the previous one (`used_at = NOW()` before inserting).
+One active token per user. Issuing a new token (on resend) invalidates the previous one by setting `used_at = NOW()` before inserting.
 
 ### AuditLog
 | Field | Type | Notes |
@@ -213,14 +215,13 @@ All routes are prefixed with `/api/v1`.
 ### Auth (public)
 | Method | Path | Description |
 |---|---|---|
-| POST | `/auth/register` | Create a new account (sends verification email) |
+| POST | `/auth/register` | Create a new account (`status = active`) |
 | POST | `/auth/login` | Login with email + password + captcha token → JWT + refresh token |
 | POST | `/auth/refresh` | Exchange refresh token for new JWT |
 | POST | `/auth/forgot-password` | Send password reset email |
 | POST | `/auth/reset-password` | Consume reset token + set new password |
 | POST | `/auth/logout` | Revoke refresh token (requires valid JWT) |
-| POST | `/auth/verify` | Consume verification or invitation token. Body: `{ token, password? }` |
-| POST | `/auth/resend-verification` | Resend verification email for unverified self-registered users. Body: `{ email }` |
+| POST | `/auth/accept-invitation` | Consume invitation token + set password → activates account |
 
 ### Posts
 | Method | Path | Auth | Description |
@@ -256,13 +257,13 @@ All routes are prefixed with `/api/v1`.
 ### Users
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/users` | `user:manage` | List active (non-deleted) users |
-| POST | `/users` | `user:create` | Create user account (no password); sends invitation email |
+| GET | `/users` | `user:manage` | List users (includes `status` field); excludes soft-deleted |
+| POST | `/users` | `user:create` | Create user account (no password); sends invitation email; status = `pending_invitation` |
 | PUT | `/users/:id` | `user:update` | Update a user's profile/email (superadmin) |
 | DELETE | `/users/:id` | `user:delete` | Soft delete a user account (sets `deleted_at`); revokes all refresh tokens |
 | POST | `/users/:id/roles` | `user:manage` | Assign role to user |
 | DELETE | `/users/:id/roles/:roleId` | `user:manage` | Remove role from user |
-| POST | `/users/:id/resend-invitation` | `user:create` | Resend invitation email. Returns `409` if already verified |
+| POST | `/users/:id/resend-invitation` | `user:manage` | Resend invitation email. Only valid when status is `pending_invitation` or `expired_invitation`; returns `409` if `active` |
 
 ### Profile (self)
 | Method | Path | Auth | Description |
@@ -287,47 +288,53 @@ All routes are prefixed with `/api/v1`.
 - Login requires a valid **CAPTCHA token** (hCaptcha or Google reCAPTCHA v2/v3), verified server-side
 - Password reset tokens are single-use, hashed before storage, expire after 1 hour
 - `last_login_at` on the user record is updated on every successful login
-- **Login guard:** If `email_verified_at IS NULL` → return `403` with code `EMAIL_NOT_VERIFIED`
+- **Login guard:** Users with `status != active` cannot log in — returns `403 ACCOUNT_NOT_ACTIVATED`
 
-### Email Verification & Invitation
+### User Invitation
 
-Two flows share the same `UserVerificationToken` table and `POST /auth/verify` endpoint, differentiated by `type`.
+When a superadmin creates a user via `POST /users`, no password is set. The user must accept the invitation to activate their account.
 
-**Flow A — Superadmin creates a user (`POST /users`):**
-1. User record created: `password_hash = NULL`, `email_verified_at = NULL`
-2. `invitation` token generated (raw token → SHA-256 hash stored)
-3. Invitation email sent: link to `{FRONTEND_URL}/accept-invitation?token={raw}`
-4. On `POST /auth/verify` with `{ token, password }`:
-   - Token validated (not expired, not used)
-   - `password` field **required** — validated against full complexity rules
-   - `password_hash` set, `email_verified_at = NOW()`, token marked `used_at`
-   - Fires `user.invitation_accepted` audit event
+**`POST /users` flow:**
+1. User record created: `password_hash = NULL`, `status = pending_invitation`
+2. `InvitationToken` created (raw token → SHA-256 hash stored, expires 24 hours)
+3. Invitation email sent with link: `{FRONTEND_URL}/accept-invitation?token={raw}`
+4. Fires `user.invited` audit event
 
-**Flow B — Self-registration (`POST /auth/register`):**
-1. User record created: `password_hash` set, `email_verified_at = NULL`
-2. `email_verification` token generated
-3. Verification email sent: link to `{FRONTEND_URL}/verify-email?token={raw}`
-4. On `POST /auth/verify` with `{ token }`:
-   - Token validated
-   - `password` field ignored
-   - `email_verified_at = NOW()`, token marked `used_at`
-   - Fires `user.email_verified` audit event
+**`POST /auth/accept-invitation` flow:**
+1. Receive `{ token, new_password }` in request body
+2. Look up `InvitationToken` by SHA-256 hash — `400 TOKEN_INVALID` if not found or already used
+3. Check `expires_at` — `400 TOKEN_EXPIRED` if expired (message: "Invitation expired. Ask an admin to resend it.")
+4. Validate `new_password` against full Password Complexity Rules
+5. Set `password_hash`, set `status = active`, set `invitation_token.used_at = NOW()`
+6. Fires `user.invitation_accepted` audit event
+7. Returns `200` — user can now log in normally
 
-**Resend flows:**
-- `POST /auth/resend-verification` (public): for self-registered unverified users — invalidates previous token, issues and emails a new one
-- `POST /users/:id/resend-invitation` (`user:create`): for superadmin-invited unverified users — same invalidation + re-issue; returns `409` if already verified
+**`POST /users/:id/resend-invitation` flow (`user:manage`):**
+1. Check user `status` — return `409 USER_ALREADY_ACTIVE` if `status = active`
+2. Invalidate previous token (`used_at = NOW()`)
+3. Create new `InvitationToken` (fresh 24-hour expiry)
+4. Reset `status = pending_invitation` if it was `expired_invitation`
+5. Send invitation email
+6. Fires `user.invitation_resent` audit event
+
+**Status lifecycle:**
+```
+[superadmin creates user] → pending_invitation
+     → [daily job, token expired] → expired_invitation
+     → [resend] → pending_invitation
+     → [user accepts] → active
+```
 
 **Token error codes:**
 
 | Code | HTTP | Meaning |
 |---|---|---|
 | `TOKEN_INVALID` | 400 | Token not found or already used |
-| `TOKEN_EXPIRED` | 400 | Token older than 24 hours |
-| `PASSWORD_REQUIRED` | 400 | Invitation token consumed without a `password` field |
-| `EMAIL_NOT_VERIFIED` | 403 | Login attempted on unverified account |
-| `USER_ALREADY_VERIFIED` | 409 | Resend attempted on already-verified user |
+| `TOKEN_EXPIRED` | 400 | Invitation older than 24 hours |
+| `ACCOUNT_NOT_ACTIVATED` | 403 | Login attempted before invitation accepted |
+| `USER_ALREADY_ACTIVE` | 409 | Resend attempted on already-active user |
 
-**Frontend URL** for email links is configured via `FRONTEND_URL` env var.
+**`FRONTEND_URL`** env var configures the base URL for email links.
 
 ### Password Complexity
 
@@ -443,7 +450,7 @@ Both fields are returned in all post response objects — both the list (`GET /p
 
 ### Email
 - Sent via **SMTP** (provider-agnostic: SendGrid, Resend, Mailgun, self-hosted)
-- Transactional emails: password reset link, email verification link, invitation link
+- Transactional emails: password reset link, invitation link
 - HTML + plain text templates
 
 ### CORS
@@ -465,9 +472,11 @@ type AuditLogger interface {
 
 | Event Code | Trigger |
 |---|---|
-| `user.registered` | New account created via register endpoint (email verification pending) |
-| `user.email_verified` | Self-registered user verified their email |
-| `user.invitation_accepted` | Superadmin-invited user accepted invitation and set password |
+| `user.registered` | New account created via self-registration |
+| `user.invited` | Superadmin created a user and invitation email sent |
+| `user.invitation_accepted` | Invited user accepted invitation, set password, account activated |
+| `user.invitation_resent` | Admin resent invitation to pending/expired user |
+| `user.invitation_expired` | Daily job sets user status to `expired_invitation` |
 | `user.login` | Successful login |
 | `user.login_failed` | Failed login (wrong password or captcha rejection) |
 | `user.logout` | Refresh token revoked via logout |

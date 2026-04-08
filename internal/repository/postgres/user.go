@@ -140,16 +140,25 @@ func (r *UserRepository) UpdateStatus(ctx context.Context, id string, status dom
 }
 
 func (r *UserRepository) UpdateLastLogin(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx,
+	tag, err := r.db.Exec(ctx,
 		`UPDATE users SET last_login_at=NOW() WHERE id=$1 AND deleted_at IS NULL`, id)
-	return err
+	if err != nil {
+		return fmt.Errorf("user update last login: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
 
 func (r *UserRepository) AssignRole(ctx context.Context, userID, roleID string) error {
 	_, err := r.db.Exec(ctx,
 		`INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
 		userID, roleID)
-	return err
+	if err != nil {
+		return fmt.Errorf("assign role: %w", err)
+	}
+	return nil
 }
 
 func (r *UserRepository) RemoveRole(ctx context.Context, userID, roleID string) error {

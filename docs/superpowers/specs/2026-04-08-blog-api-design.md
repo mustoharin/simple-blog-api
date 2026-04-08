@@ -120,6 +120,18 @@ simple-blog-api/
 | uploaded_by | UUID | FK → User |
 | created_at | timestamptz | |
 
+### RefreshToken
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | |
+| user_id | UUID | FK → User |
+| token_hash | text | SHA-256 of the raw token |
+| expires_at | timestamptz | e.g. 30 days from creation |
+| revoked_at | timestamptz | Nullable; set on rotation or logout |
+| created_at | timestamptz | |
+
+On refresh: old token is revoked and a new one is issued (rotation). On logout: token is revoked.
+
 ### PasswordResetToken
 | Field | Type | Notes |
 |---|---|---|
@@ -160,6 +172,7 @@ All routes are prefixed with `/api/v1`.
 | POST | `/auth/refresh` | Exchange refresh token for new JWT |
 | POST | `/auth/forgot-password` | Send password reset email |
 | POST | `/auth/reset-password` | Consume reset token + set new password |
+| POST | `/auth/logout` | Revoke refresh token (requires valid JWT) |
 
 ### Posts
 | Method | Path | Auth | Description |

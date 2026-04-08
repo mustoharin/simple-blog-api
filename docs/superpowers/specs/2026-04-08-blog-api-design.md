@@ -54,8 +54,13 @@ simple-blog-api/
 | id | UUID | Primary key |
 | email | text | Unique |
 | password_hash | text | bcrypt |
+| display_name | text | Nullable; user's public name |
+| bio | text | Nullable; short biography |
+| avatar_url | text | Nullable; URL to profile image |
+| last_login_at | timestamptz | Nullable; updated on every successful login |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
+| deleted_at | timestamptz | Nullable; set on soft delete; NULL = active |
 
 ### Role
 | Field | Type | Notes |
@@ -93,6 +98,7 @@ simple-blog-api/
 | search_vector | tsvector | Auto-updated via trigger for full-text search |
 | view_count | bigint | Default 0; incremented atomically on each public fetch |
 | comment_count | int | Default 0; maintained by a DB trigger on the comments table |
+| deleted_at | timestamptz | Nullable; set on soft delete; NULL = active |
 
 ### Tag
 | Field | Type |
@@ -113,6 +119,7 @@ simple-blog-api/
 | body | text | |
 | status | enum | `pending` \| `approved` \| `rejected` |
 | created_at | timestamptz | |
+| deleted_at | timestamptz | Nullable; set on soft delete; NULL = active |
 
 ### Image
 | Field | Type | Notes |
@@ -207,38 +214,45 @@ All routes are prefixed with `/api/v1`.
 | POST | `/posts` | `post:create` | Create post |
 | PUT | `/posts/:id` | `post:edit` | Update post |
 | PATCH | `/posts/:id/publish` | `post:publish` | Toggle publish status |
-| DELETE | `/posts/:id` | `post:delete` | Delete post |
+| DELETE | `/posts/:id` | `post:delete` | Soft delete post (sets `deleted_at`); cascades to its comments |
 
 ### Tags
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/tags` | public | List all tags |
 | POST | `/tags` | `post:create` | Create tag |
-| DELETE | `/tags/:id` | `post:delete` | Delete tag |
+| DELETE | `/tags/:id` | `post:delete` | Hard delete tag (no soft delete) |
 
 ### Comments
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/posts/:id/comments` | public | List approved comments for a post |
+| GET | `/posts/:id/comments` | public | List approved, non-deleted comments for a post |
 | POST | `/posts/:id/comments` | `comment:create` | Submit comment (status = pending) |
 | PATCH | `/comments/:id/status` | `comment:approve` | Approve or reject a comment |
-| DELETE | `/comments/:id` | `comment:approve` | Delete comment |
+| DELETE | `/comments/:id` | `comment:approve` | Soft delete comment (sets `deleted_at`) |
 
 ### Images
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | POST | `/images` | `image:upload` | Upload image → S3, returns URL |
-| DELETE | `/images/:id` | `image:upload` | Delete image from S3 + DB |
+| DELETE | `/images/:id` | `image:upload` | Hard delete — removes from S3 and DB |
 
 ### Users
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/users` | `user:manage` | List users |
+| GET | `/users` | `user:manage` | List active (non-deleted) users |
 | POST | `/users` | `user:create` | Create a user account (superadmin) |
 | PUT | `/users/:id` | `user:update` | Update a user's profile/email (superadmin) |
-| DELETE | `/users/:id` | `user:delete` | Delete a user account (superadmin) |
+| DELETE | `/users/:id` | `user:delete` | Soft delete a user account (sets `deleted_at`); revokes all refresh tokens |
 | POST | `/users/:id/roles` | `user:manage` | Assign role to user |
 | DELETE | `/users/:id/roles/:roleId` | `user:manage` | Remove role from user |
+
+### Profile (self)
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/me` | any authenticated | Get own profile: `id`, `email`, `display_name`, `bio`, `avatar_url`, `last_login_at`, `roles`, `created_at` |
+| PATCH | `/me` | any authenticated | Update own `display_name`, `bio`, `avatar_url` |
+| POST | `/me/change-password` | any authenticated | Change password (requires `current_password` + `new_password`; revokes all refresh tokens) |
 
 ### Audit Logs
 | Method | Path | Auth | Description |
@@ -255,6 +269,39 @@ All routes are prefixed with `/api/v1`.
 - **JWT** (access token, short-lived e.g. 15 min) + **refresh token** (long-lived, stored in DB, rotated on use)
 - Login requires a valid **CAPTCHA token** (hCaptcha or Google reCAPTCHA v2/v3), verified server-side
 - Password reset tokens are single-use, hashed before storage, expire after 1 hour
+- `last_login_at` on the user record is updated on every successful login
+
+### Soft Delete
+
+`deleted_at TIMESTAMPTZ DEFAULT NULL` is added to `posts`, `comments`, and `users`. Tags and Images use hard delete.
+
+**Repository rule:** Every `SELECT` on these three tables appends `AND deleted_at IS NULL`. No deleted records are ever returned to the application layer.
+
+**On delete:** Repositories execute `UPDATE ... SET deleted_at = NOW()` — never `DELETE FROM`.
+
+**Cascades (application-level, same transaction):**
+- Soft-deleting a **post** also soft-deletes all its non-deleted comments
+- Soft-deleting a **user** revokes all their active refresh tokens; their posts and comments are **not** soft-deleted (content survives)
+
+**Retention purge:** The daily background job permanently removes records where `deleted_at < NOW() - interval(SOFT_DELETE_RETENTION_DAYS days)`. Default: 90 days.
+
+**Partial DB indexes** on `(deleted_at)` for each affected table ensure queries remain fast.
+
+### User Profile & Change Password
+
+**Profile fields** (`display_name`, `bio`, `avatar_url`, `last_login_at`) live on the `users` table.
+
+**`GET /me`** returns: `id`, `email`, `display_name`, `bio`, `avatar_url`, `last_login_at`, `roles[]`, `created_at`. Sensitive fields (`password_hash`) are never serialized.
+
+**`PATCH /me`** allows self-editing of `display_name`, `bio`, `avatar_url`. Email is not self-editable (superadmin only via `PUT /users/:id`). Trim + `StrictPolicy` XSS rules apply.
+
+**`POST /me/change-password`** flow:
+1. Verify `current_password` against `password_hash` — `403` on mismatch
+2. Validate `new_password` strength (min 8 chars, ≥1 uppercase, ≥1 digit) — `400` on failure
+3. Hash and store `new_password`
+4. Revoke all active refresh tokens for the user
+5. Return `200` — caller must re-authenticate
+6. Fires `user.password_changed` audit event
 
 ### Full-Text Search
 - PostgreSQL `tsvector` column on `posts`, populated via a DB trigger
@@ -267,7 +314,7 @@ All routes are prefixed with `/api/v1`.
 - Increments by 1 when a comment is inserted with `status = 'approved'`
 - Increments by 1 when a comment's status transitions **to** `'approved'`
 - Decrements by 1 when a comment's status transitions **from** `'approved'` to `'pending'` or `'rejected'`
-- Decrements by 1 when an `approved` comment is deleted
+- Decrements by 1 when an `approved` comment is soft-deleted (`deleted_at` set)
 
 **`view_count`** — incremented atomically in the `GetPostBySlug` usecase after a successful fetch of a `published` post:
 ```sql
@@ -312,6 +359,7 @@ type AuditLogger interface {
 | `user.logout` | Refresh token revoked via logout |
 | `user.password_reset_requested` | Forgot-password email sent |
 | `user.password_reset_completed` | Password successfully reset |
+| `user.password_changed` | Authenticated user changed their own password (all sessions revoked) |
 | `user.created` | Superadmin creates a user account directly |
 | `user.updated` | Superadmin updates a user profile |
 | `user.deleted` | Superadmin deletes a user |
@@ -367,6 +415,7 @@ CAPTCHA_SECRET
 ALLOWED_ORIGINS         # comma-separated list
 
 AUDIT_LOG_RETENTION_DAYS  # Default: 365
+SOFT_DELETE_RETENTION_DAYS  # Default: 90
 ```
 
 ---

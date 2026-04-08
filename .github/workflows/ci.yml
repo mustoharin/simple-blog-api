@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test + Security Scan
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: blog_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/blog_test?sslmode=disable
+          JWT_SECRET: test-jwt-secret-for-ci
+          ENV: test
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
+
+      - name: Check test coverage (usecase layer >= 80%)
+        run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep 'simple-blog-api/internal/usecase' | \
+            awk '{ total += $3; count++ } END { gsub(/%/, "", total); print total/count }')
+          echo "Usecase coverage: ${COVERAGE}%"
+          awk "BEGIN { if (${COVERAGE} < 80) { print \"Coverage below 80%\"; exit 1 } }"
+
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run gosec
+        run: |
+          gosec \
+            -include=G101,G104,G201,G202,G304,G401,G501 \
+            -fmt=text \
+            ./...

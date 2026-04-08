@@ -38,7 +38,8 @@ simple-blog-api/
 │   │   └── http/             # Gin route handlers + middleware (JWT, RBAC, CORS, recovery)
 │   ├── storage/              # S3/S3-compatible upload logic
 │   └── pkg/
-│       └── sanitize/         # Shared trim + XSS sanitization helpers
+│       ├── sanitize/         # Shared trim + XSS sanitization helpers
+│       └── password/         # Password complexity validator + HIBP breach check client
 ├── migrations/               # SQL migration files (managed with golang-migrate or goose)
 ├── config/                   # Config struct loaded from environment variables
 └── docs/                     # Design specs, OpenAPI (future)
@@ -271,6 +272,60 @@ All routes are prefixed with `/api/v1`.
 - Password reset tokens are single-use, hashed before storage, expire after 1 hour
 - `last_login_at` on the user record is updated on every successful login
 
+### Password Complexity
+
+**Standard:** NIST SP 800-63B §5.1.1 combined with ISO/IEC 27002:2022 password guidance.
+
+**Rules (applied in order — fail-fast):**
+
+| # | Rule | Requirement | Standard |
+|---|---|---|---|
+| 1 | Trim | Strip leading/trailing whitespace before any check | NIST 800-63B |
+| 2 | Minimum length | ≥ **12 characters** (after trim) | NIST 800-63B + ISO/IEC 27002:2022 |
+| 3 | No maximum length | Accept passwords of any length | NIST 800-63B §5.1.1 |
+| 4 | Uppercase letter | ≥ 1 character `[A-Z]` | ISO/IEC 27002:2022 |
+| 5 | Lowercase letter | ≥ 1 character `[a-z]` | ISO/IEC 27002:2022 |
+| 6 | Digit | ≥ 1 character `[0-9]` | ISO/IEC 27002:2022 |
+| 7 | Special character | ≥ 1 from `!@#$%^&*()_+-=[]{}';:"\\|,.<>/?` | ISO/IEC 27002:2022 |
+| 8 | Unicode allowed | Accept all printable Unicode code points | NIST 800-63B §5.1.1 |
+| 9 | No sequential patterns | Reject common sequences: `123456`, `abcdef`, `qwerty`, `password`, etc. | NIST 800-63B §5.1.1.2 |
+| 10 | No breach match | Must not appear in HIBP Pwned Passwords database | NIST 800-63B §5.1.1.2 |
+| — | No forced rotation | Users are NOT required to change passwords periodically | NIST 800-63B §5.1.1 |
+
+**Enforcement points:** Rules 1–10 are enforced at all three password-setting flows:
+- `POST /auth/register`
+- `POST /auth/reset-password`
+- `POST /me/change-password`
+
+**HIBP Breach Check (k-Anonymity model):**
+1. SHA-1 hash the candidate password
+2. Send only the **first 5 hex characters** to `https://api.pwnedpasswords.com/range/{first5}`
+3. API returns matching hash suffixes + breach counts
+4. Check locally whether the full hash suffix appears in the response
+5. If found → reject with `PASSWORD_BREACHED` error
+6. **Fail open:** if the HIBP API is unavailable (timeout 3s, 5xx, rate-limited) → log a warning and allow the password (availability over over-rejection per NIST guidance)
+
+**Architecture:** All rules live in `internal/pkg/password/`:
+```
+internal/pkg/password/
+├── validator.go       # PasswordValidator struct; Validate(ctx, password) error
+├── hibp.go            # HIBP k-anonymity HTTP client
+└── validator_test.go  # Table-driven tests covering all rules; HIBP mocked
+```
+`PasswordValidator` is constructed once in `main.go` and injected into the three usecases that need it.
+
+**Validation error codes** (returned in `400` response body):
+
+| Code | User-facing message |
+|---|---|
+| `PASSWORD_TOO_SHORT` | "Password must be at least 12 characters" |
+| `PASSWORD_NO_UPPERCASE` | "Password must contain at least one uppercase letter" |
+| `PASSWORD_NO_LOWERCASE` | "Password must contain at least one lowercase letter" |
+| `PASSWORD_NO_DIGIT` | "Password must contain at least one number" |
+| `PASSWORD_NO_SPECIAL` | "Password must contain at least one special character" |
+| `PASSWORD_SEQUENTIAL` | "Password contains a common pattern and cannot be used" |
+| `PASSWORD_BREACHED` | "This password has appeared in a data breach. Please choose a different one" |
+
 ### Soft Delete
 
 `deleted_at TIMESTAMPTZ DEFAULT NULL` is added to `posts`, `comments`, and `users`. Tags and Images use hard delete.
@@ -297,7 +352,7 @@ All routes are prefixed with `/api/v1`.
 
 **`POST /me/change-password`** flow:
 1. Verify `current_password` against `password_hash` — `403` on mismatch
-2. Validate `new_password` strength (min 8 chars, ≥1 uppercase, ≥1 digit) — `400` on failure
+2. Validate `new_password` against the **Password Complexity Rules** (see §Password Complexity) — `400` on failure
 3. Hash and store `new_password`
 4. Revoke all active refresh tokens for the user
 5. Return `200` — caller must re-authenticate

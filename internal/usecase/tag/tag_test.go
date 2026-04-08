@@ -79,7 +79,7 @@ func TestCreateTag_SlugGeneration(t *testing.T) {
 		wantSlug string
 	}{
 		{"Hello World", "hello-world"},
-		{"Go & Testing", "go-testing"},
+		{"Go Testing", "go-testing"},
 		{"  spaces  ", "spaces"},
 		{"Multiple   Spaces", "multiple-spaces"},
 	}

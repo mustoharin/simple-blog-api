@@ -306,6 +306,76 @@ A Gin recovery middleware catches panics and logs them with a request ID.
 
 ---
 
+## Coding Guidelines
+
+### SAST — Static Analysis with gosec
+
+**Tool:** [`securego/gosec`](https://github.com/securego/gosec) — Go-native static security analysis.
+
+**CI enforcement:** A dedicated GitHub Actions job runs `gosec ./...` on every push and pull request targeting `main`. The job is required — merges are blocked if any non-suppressed rule fires.
+
+**Enforced rules (must never be suppressed without justification):**
+
+| Rule | Description |
+|---|---|
+| `G101` | Hardcoded credentials in source code |
+| `G104` | Unhandled errors — all errors must be handled or explicitly ignored with `_` + comment |
+| `G201/G202` | SQL string formatting — use parameterized queries only; string concatenation in SQL is forbidden |
+| `G304` | File path injection — sanitize all user-supplied values used in file/S3 key construction |
+| `G401` | Weak crypto hash (MD5, SHA1) — forbidden for any security-sensitive operation |
+| `G501` | Use `crypto/rand`, never `math/rand`, for token/secret generation |
+
+**Suppression policy:** `//nolint:gosec` annotations are allowed only with an inline comment explaining why the suppression is safe. Blanket file-level or package-level suppressions are forbidden.
+
+---
+
+### XSS Sanitization
+
+**Library:** [`microcosm-cc/bluemonday`](https://github.com/microcosm-cc/bluemonday)
+
+**Where it runs:** Sanitization is applied in the **usecase layer**, not in HTTP handlers. This ensures it runs regardless of how input enters the system (HTTP, tests, scripts).
+
+**Policy tiers:**
+
+| Field(s) | Policy | Reason |
+|---|---|---|
+| Post `content` | `bluemonday.UGCPolicy()` | Markdown renders to HTML; safe subset of tags is allowed |
+| Post `title`, `excerpt` | `bluemonday.StrictPolicy()` | Plain text only |
+| Comment `body` | `bluemonday.StrictPolicy()` | No HTML in comments |
+| Tag `name`, `slug` | `bluemonday.StrictPolicy()` | Plain text |
+| User `email` | `bluemonday.StrictPolicy()` | Plain text |
+| All other text inputs | `bluemonday.StrictPolicy()` | Default: strip all HTML |
+
+`UGCPolicy` allows safe formatting tags (`<b>`, `<i>`, `<em>`, `<a>`, `<p>`, `<ul>`, `<ol>`, `<li>`, `<code>`, `<pre>`, `<blockquote>`) and strips dangerous attributes (e.g., `onclick`, `style`, `javascript:` hrefs).
+
+---
+
+### Input Trim Validation
+
+**Rule:** All user-facing string inputs are trimmed of leading and trailing whitespace using `strings.TrimSpace` before any validation or persistence.
+
+**A shared helper** `sanitize.Trim(s string) string` lives in `internal/pkg/sanitize` and is used consistently throughout the usecase layer.
+
+**Fields where trim is applied:**
+
+| Category | Fields |
+|---|---|
+| Post | `title`, `slug`, `excerpt`, `cover_image_url` |
+| Tag | `name`, `slug` |
+| Comment | `body` |
+| User | `email` |
+| Auth inputs | `email` (all auth endpoints) |
+| Query parameters | `q`, `tag`, `author` |
+
+**Exception:** Post `content` — leading/trailing whitespace in a Markdown document is intentional and is not trimmed.
+
+**Order of operations (applied per field in usecases):**
+1. **Trim** — `strings.TrimSpace`
+2. **Sanitize** — XSS clean via `bluemonday`
+3. **Validate** — check required, length, format constraints
+
+---
+
 ## Dependencies (planned)
 
 | Package | Purpose |
@@ -318,3 +388,5 @@ A Gin recovery middleware catches panics and logs them with a request ID.
 | `github.com/golang-migrate/migrate/v4` | DB migrations |
 | `github.com/stretchr/testify` | Test assertions |
 | `github.com/google/uuid` | UUID generation |
+| `github.com/microcosm-cc/bluemonday` | XSS HTML sanitization |
+| `github.com/securego/gosec/v2` | SAST (dev/CI tool) |

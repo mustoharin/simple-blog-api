@@ -143,20 +143,41 @@ On refresh: old token is revoked and a new one is issued (rotation). On logout: 
 | expires_at | timestamptz | 1 hour from creation |
 | used_at | timestamptz | Nullable; set on consumption |
 
+### AuditLog
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | Primary key |
+| actor_id | UUID | FK → User; nullable (null for unauthenticated events like failed login) |
+| actor_email | text | Snapshot of email at time of action (survives user deletion) |
+| action | text | Event code e.g. `post.created`, `user.login` |
+| resource_type | text | `post`, `comment`, `tag`, `image`, `user`, `session` |
+| resource_id | text | UUID of the affected resource (nullable for session events) |
+| ip_address | text | Client IP from request |
+| user_agent | text | Client user-agent header |
+| created_at | timestamptz | Indexed for date-range filtering and retention purge |
+
+Indexes: `(actor_id)`, `(action)`, `(resource_type)`, `(created_at)`.
+
 ---
 
 ## RBAC — Default Roles & Permissions
 
-| Permission | admin | editor | reader |
-|---|:---:|:---:|:---:|
-| `post:create` | ✓ | ✓ | |
-| `post:edit` | ✓ | ✓ | |
-| `post:delete` | ✓ | ✓ | |
-| `post:publish` | ✓ | ✓ | |
-| `image:upload` | ✓ | ✓ | |
-| `comment:create` | ✓ | ✓ | ✓ |
-| `comment:approve` | ✓ | ✓ | |
-| `user:manage` | ✓ | | |
+| Permission | superadmin | admin | editor | reader |
+|---|:---:|:---:|:---:|:---:|
+| `post:create` | ✓ | ✓ | ✓ | |
+| `post:edit` | ✓ | ✓ | ✓ | |
+| `post:delete` | ✓ | ✓ | ✓ | |
+| `post:publish` | ✓ | ✓ | ✓ | |
+| `image:upload` | ✓ | ✓ | ✓ | |
+| `comment:create` | ✓ | ✓ | ✓ | ✓ |
+| `comment:approve` | ✓ | ✓ | ✓ | |
+| `user:manage` | ✓ | ✓ | | | ← role assignment only |
+| `user:create` | ✓ | | | | ← superadmin only |
+| `user:update` | ✓ | | | | ← superadmin only |
+| `user:delete` | ✓ | | | | ← superadmin only |
+| `audit:read` | ✓ | ✓ | | |
+
+**Superadmin protection rule:** Only a superadmin can assign or remove the `superadmin` role. An admin with `user:manage` cannot elevate any user to superadmin.
 
 JWT tokens encode the user's resolved set of permission names. RBAC middleware checks the token claims — no DB hit per request.
 
@@ -207,12 +228,21 @@ All routes are prefixed with `/api/v1`.
 | POST | `/images` | `image:upload` | Upload image → S3, returns URL |
 | DELETE | `/images/:id` | `image:upload` | Delete image from S3 + DB |
 
-### Users (admin)
+### Users
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/users` | `user:manage` | List users |
+| POST | `/users` | `user:create` | Create a user account (superadmin) |
+| PUT | `/users/:id` | `user:update` | Update a user's profile/email (superadmin) |
+| DELETE | `/users/:id` | `user:delete` | Delete a user account (superadmin) |
 | POST | `/users/:id/roles` | `user:manage` | Assign role to user |
 | DELETE | `/users/:id/roles/:roleId` | `user:manage` | Remove role from user |
+
+### Audit Logs
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/audit-logs` | `audit:read` | List audit log entries. Query params: `actor_id`, `action`, `resource_type`, `resource_id`, `from`, `to`, `page`, `limit` |
+| GET | `/audit-logs/:id` | `audit:read` | Get a single audit log entry |
 
 ---
 
@@ -242,6 +272,50 @@ All routes are prefixed with `/api/v1`.
 ### CORS
 - Configurable allowed origins via env var
 - Gin CORS middleware applied globally
+
+### Audit Logging
+
+**Architecture:** An `AuditLogger` interface is defined in `domain`. Usecases receive it via constructor injection and call it after each successful audited operation. The PostgreSQL implementation writes the row synchronously. A nil/no-op implementation is used in unit tests.
+
+```go
+// domain interface
+type AuditLogger interface {
+    Log(ctx context.Context, entry AuditEntry) error
+}
+```
+
+**Audited events:**
+
+| Event Code | Trigger |
+|---|---|
+| `user.registered` | New account created via register endpoint |
+| `user.login` | Successful login |
+| `user.login_failed` | Failed login (wrong password or captcha rejection) |
+| `user.logout` | Refresh token revoked via logout |
+| `user.password_reset_requested` | Forgot-password email sent |
+| `user.password_reset_completed` | Password successfully reset |
+| `user.created` | Superadmin creates a user account directly |
+| `user.updated` | Superadmin updates a user profile |
+| `user.deleted` | Superadmin deletes a user |
+| `user.role_assigned` | Role assigned to a user |
+| `user.role_removed` | Role removed from a user |
+| `post.created` | Post created |
+| `post.updated` | Post updated |
+| `post.published` | Post published |
+| `post.unpublished` | Post set back to draft |
+| `post.deleted` | Post deleted |
+| `comment.created` | Comment submitted |
+| `comment.approved` | Comment approved |
+| `comment.rejected` | Comment rejected |
+| `comment.deleted` | Comment deleted |
+| `tag.created` | Tag created |
+| `tag.deleted` | Tag deleted |
+| `image.uploaded` | Image uploaded to S3 |
+| `image.deleted` | Image deleted from S3 + DB |
+
+**Special case — `user.login_failed`:** `actor_id` is `null`; `actor_email` holds the attempted email; `ip_address` is always captured.
+
+**Retention:** A background goroutine starts at server boot and runs once daily. It deletes rows where `created_at < NOW() - interval(AUDIT_LOG_RETENTION_DAYS days)`. Default: 365 days.
 
 ---
 
@@ -273,6 +347,8 @@ CAPTCHA_PROVIDER        # recaptcha | hcaptcha
 CAPTCHA_SECRET
 
 ALLOWED_ORIGINS         # comma-separated list
+
+AUDIT_LOG_RETENTION_DAYS  # Default: 365
 ```
 
 ---

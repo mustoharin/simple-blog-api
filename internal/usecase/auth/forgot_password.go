@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -56,8 +57,10 @@ func (uc *ForgotPasswordUsecase) Execute(ctx context.Context, emailAddr string) 
 
 	user, err := uc.users.GetByEmail(ctx, emailAddr)
 	if err != nil {
-		// Return nil to prevent email enumeration
-		return nil
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil // prevent email enumeration
+		}
+		return err
 	}
 
 	rawToken := make([]byte, 32)
@@ -79,20 +82,24 @@ func (uc *ForgotPasswordUsecase) Execute(ctx context.Context, emailAddr string) 
 	}
 
 	resetURL := fmt.Sprintf("%s/reset-password?token=%s", uc.frontendURL, rawTokenStr)
-	_ = uc.email.Send(EmailMessage{
-		To:      user.Email,
-		Subject: "Password Reset Request",
-		Body:    fmt.Sprintf(`<p>Click <a href="%s">here</a> to reset your password. This link expires in 1 hour.</p>`, resetURL),
-	})
+	go func() {
+		_ = uc.email.Send(EmailMessage{
+			To:      user.Email,
+			Subject: "Password Reset Request",
+			Body:    fmt.Sprintf(`<p>Click <a href="%s">here</a> to reset your password. This link expires in 1 hour.</p>`, resetURL),
+		})
+	}()
 
-	_ = uc.audit.Log(ctx, &domain.AuditLog{
-		ID:           uuid.NewString(),
-		ActorID:      &user.ID,
-		ActorEmail:   user.Email,
-		Action:       domain.AuditUserPasswordResetRequested,
-		ResourceType: "user",
-		ResourceID:   &user.ID,
-	})
+	go func() {
+		_ = uc.audit.Log(ctx, &domain.AuditLog{
+			ID:           uuid.NewString(),
+			ActorID:      &user.ID,
+			ActorEmail:   user.Email,
+			Action:       domain.AuditUserPasswordResetRequested,
+			ResourceType: "user",
+			ResourceID:   &user.ID,
+		})
+	}()
 
 	return nil
 }

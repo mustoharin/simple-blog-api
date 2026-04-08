@@ -79,16 +79,20 @@ func (uc *ResetPasswordUsecase) Execute(ctx context.Context, rawToken, newPasswo
 		return err
 	}
 
-	_ = uc.refreshTokens.RevokeAllForUser(ctx, user.ID)
+	go func() {
+		_ = uc.refreshTokens.RevokeAllForUser(ctx, user.ID)
+	}()
 
-	_ = uc.audit.Log(ctx, &domain.AuditLog{
-		ID:           uuid.NewString(),
-		ActorID:      &user.ID,
-		ActorEmail:   user.Email,
-		Action:       domain.AuditUserPasswordResetCompleted,
-		ResourceType: "user",
-		ResourceID:   &user.ID,
-	})
+	go func() {
+		_ = uc.audit.Log(ctx, &domain.AuditLog{
+			ID:           uuid.NewString(),
+			ActorID:      &user.ID,
+			ActorEmail:   user.Email,
+			Action:       domain.AuditUserPasswordResetCompleted,
+			ResourceType: "user",
+			ResourceID:   &user.ID,
+		})
+	}()
 
 	return nil
 }

@@ -122,5 +122,8 @@ func (r *AuditLogRepository) GetByID(ctx context.Context, id string) (*domain.Au
 func (r *AuditLogRepository) DeleteOlderThan(ctx context.Context, days int) error {
 	_, err := r.db.Exec(ctx,
 		`DELETE FROM audit_logs WHERE created_at < NOW() - ($1 || ' days')::INTERVAL`, days)
-	return err
+	if err != nil {
+		return fmt.Errorf("audit log delete older than: %w", err)
+	}
+	return nil
 }

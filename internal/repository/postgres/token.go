@@ -26,7 +26,10 @@ func (r *RefreshTokenRepository) Create(ctx context.Context, t *domain.RefreshTo
 		INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4)`,
 		t.ID, t.UserID, t.TokenHash, t.ExpiresAt)
-	return err
+	if err != nil {
+		return fmt.Errorf("create refresh token: %w", err)
+	}
+	return nil
 }
 
 func (r *RefreshTokenRepository) GetByHash(ctx context.Context, hash string) (*domain.RefreshToken, error) {
@@ -47,13 +50,19 @@ func (r *RefreshTokenRepository) GetByHash(ctx context.Context, hash string) (*d
 func (r *RefreshTokenRepository) Revoke(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE refresh_tokens SET revoked_at=NOW() WHERE id=$1`, id)
-	return err
+	if err != nil {
+		return fmt.Errorf("revoke refresh token: %w", err)
+	}
+	return nil
 }
 
 func (r *RefreshTokenRepository) RevokeAllForUser(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL`, userID)
-	return err
+	if err != nil {
+		return fmt.Errorf("revoke all refresh tokens: %w", err)
+	}
+	return nil
 }
 
 // --- PasswordResetTokenRepository ---
@@ -71,7 +80,10 @@ func (r *PasswordResetTokenRepository) Create(ctx context.Context, t *domain.Pas
 		INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4)`,
 		t.ID, t.UserID, t.TokenHash, t.ExpiresAt)
-	return err
+	if err != nil {
+		return fmt.Errorf("create password reset token: %w", err)
+	}
+	return nil
 }
 
 func (r *PasswordResetTokenRepository) GetByHash(ctx context.Context, hash string) (*domain.PasswordResetToken, error) {
@@ -92,7 +104,10 @@ func (r *PasswordResetTokenRepository) GetByHash(ctx context.Context, hash strin
 func (r *PasswordResetTokenRepository) MarkUsed(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE password_reset_tokens SET used_at=NOW() WHERE id=$1`, id)
-	return err
+	if err != nil {
+		return fmt.Errorf("mark password reset token used: %w", err)
+	}
+	return nil
 }
 
 // --- InvitationTokenRepository ---
@@ -110,7 +125,10 @@ func (r *InvitationTokenRepository) Create(ctx context.Context, t *domain.Invita
 		INSERT INTO invitation_tokens (id, user_id, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4)`,
 		t.ID, t.UserID, t.TokenHash, t.ExpiresAt)
-	return err
+	if err != nil {
+		return fmt.Errorf("create invitation token: %w", err)
+	}
+	return nil
 }
 
 func (r *InvitationTokenRepository) GetByUserID(ctx context.Context, userID string) (*domain.InvitationToken, error) {
@@ -147,11 +165,17 @@ func (r *InvitationTokenRepository) GetByHash(ctx context.Context, hash string) 
 func (r *InvitationTokenRepository) MarkUsed(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE invitation_tokens SET used_at=NOW() WHERE id=$1`, id)
-	return err
+	if err != nil {
+		return fmt.Errorf("mark invitation token used: %w", err)
+	}
+	return nil
 }
 
 func (r *InvitationTokenRepository) InvalidatePrevious(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE invitation_tokens SET used_at=NOW() WHERE user_id=$1 AND used_at IS NULL`, userID)
-	return err
+	if err != nil {
+		return fmt.Errorf("invalidate previous invitations: %w", err)
+	}
+	return nil
 }

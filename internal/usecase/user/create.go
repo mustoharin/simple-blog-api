@@ -96,7 +96,7 @@ func (uc *CreateUserUsecase) Execute(ctx context.Context, in CreateUserInput) (*
 
 	actorID := in.ActorID
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &actorID,
 			ActorEmail:   in.ActorEmail,

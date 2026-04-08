@@ -37,7 +37,7 @@ func (uc *CreateTagUsecase) Execute(ctx context.Context, name, actorID, actorEma
 	}
 
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &actorID,
 			ActorEmail:   actorEmail,

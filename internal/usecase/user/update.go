@@ -43,7 +43,7 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in UpdateUserInput) (*
 
 	actorID := in.ActorID
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &actorID,
 			ActorEmail:   in.ActorEmail,

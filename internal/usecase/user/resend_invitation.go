@@ -82,7 +82,7 @@ func (uc *ResendInvitationUsecase) Execute(ctx context.Context, userID, actorID,
 	}()
 
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &actorID,
 			ActorEmail:   actorEmail,

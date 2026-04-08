@@ -23,7 +23,7 @@ func (uc *DeleteTagUsecase) Execute(ctx context.Context, tagID, actorID, actorEm
 	}
 
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &actorID,
 			ActorEmail:   actorEmail,

@@ -25,7 +25,7 @@ func (uc *AssignRoleUsecase) Execute(ctx context.Context, userID, roleID, actorI
 		return err
 	}
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &actorID,
 			ActorEmail:   actorEmail,

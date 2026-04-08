@@ -80,11 +80,11 @@ func (uc *ResetPasswordUsecase) Execute(ctx context.Context, rawToken, newPasswo
 	}
 
 	go func() {
-		_ = uc.refreshTokens.RevokeAllForUser(ctx, user.ID)
+		_ = uc.refreshTokens.RevokeAllForUser(context.WithoutCancel(ctx), user.ID)
 	}()
 
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &user.ID,
 			ActorEmail:   user.Email,

@@ -31,10 +31,10 @@ func (uc *DeleteUserUsecase) Execute(ctx context.Context, userID, actorID, actor
 		return err
 	}
 
-	go func() { _ = uc.refreshTokens.RevokeAllForUser(ctx, userID) }()
+	go func() { _ = uc.refreshTokens.RevokeAllForUser(context.WithoutCancel(ctx), userID) }()
 
 	go func() {
-		_ = uc.audit.Log(ctx, &domain.AuditLog{
+		_ = uc.audit.Log(context.WithoutCancel(ctx), &domain.AuditLog{
 			ID:           uuid.NewString(),
 			ActorID:      &actorID,
 			ActorEmail:   actorEmail,

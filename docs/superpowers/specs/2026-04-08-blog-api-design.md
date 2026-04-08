@@ -36,7 +36,9 @@ simple-blog-api/
 │   ├── repository/           # PostgreSQL implementations of domain repo interfaces
 │   ├── delivery/
 │   │   └── http/             # Gin route handlers + middleware (JWT, RBAC, CORS, recovery)
-│   └── storage/              # S3/S3-compatible upload logic
+│   ├── storage/              # S3/S3-compatible upload logic
+│   └── pkg/
+│       └── sanitize/         # Shared trim + XSS sanitization helpers
 ├── migrations/               # SQL migration files (managed with golang-migrate or goose)
 ├── config/                   # Config struct loaded from environment variables
 └── docs/                     # Design specs, OpenAPI (future)
@@ -389,4 +391,4 @@ A Gin recovery middleware catches panics and logs them with a request ID.
 | `github.com/stretchr/testify` | Test assertions |
 | `github.com/google/uuid` | UUID generation |
 | `github.com/microcosm-cc/bluemonday` | XSS HTML sanitization |
-| `github.com/securego/gosec/v2` | SAST (dev/CI tool) |
+| `github.com/securego/gosec/v2` | SAST — CI tool only, not imported in application code |

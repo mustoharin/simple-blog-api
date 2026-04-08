@@ -3,6 +3,7 @@ package user_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"simple-blog-api/internal/domain"
 	"simple-blog-api/internal/usecase/user"
@@ -130,8 +131,11 @@ func TestCreateUser_Success_SendsInvitation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, createdUser)
 	assert.Equal(t, domain.UserStatusPendingInvitation, createdUser.Status)
+	time.Sleep(50 * time.Millisecond) // allow fire-and-forget goroutines to complete
 	repo.AssertExpectations(t)
 	invRepo.AssertExpectations(t)
+	email.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }
 
 func TestCreateUser_EmailAlreadyExists(t *testing.T) {

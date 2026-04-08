@@ -25,8 +25,11 @@ func (uc *ListUsersUsecase) Execute(ctx context.Context, page, limit int) (ListU
 	if page < 1 {
 		page = 1
 	}
-	if limit < 1 || limit > 100 {
+	if limit < 1 {
 		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
 	}
 	users, total, err := uc.users.List(ctx, page, limit)
 	if err != nil {

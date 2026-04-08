@@ -59,6 +59,7 @@ simple-blog-api/
 | bio | text | Nullable; short biography |
 | avatar_url | text | Nullable; URL to profile image |
 | last_login_at | timestamptz | Nullable; updated on every successful login |
+| email_verified_at | timestamptz | Nullable; set on email verification; NULL = unverified (cannot login) |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 | deleted_at | timestamptz | Nullable; set on soft delete; NULL = active |
@@ -153,6 +154,18 @@ On refresh: old token is revoked and a new one is issued (rotation). On logout: 
 | expires_at | timestamptz | 1 hour from creation |
 | used_at | timestamptz | Nullable; set on consumption |
 
+### UserVerificationToken
+| Field | Type | Notes |
+|---|---|---|
+| id | UUID | Primary key |
+| user_id | UUID | FK → User |
+| token_hash | text | SHA-256 of raw token |
+| type | enum | `email_verification` \| `invitation` |
+| expires_at | timestamptz | 24 hours from creation |
+| used_at | timestamptz | Nullable; set on consumption |
+
+One active token per user per type. Issuing a new token for the same user+type invalidates the previous one (`used_at = NOW()` before inserting).
+
 ### AuditLog
 | Field | Type | Notes |
 |---|---|---|
@@ -200,12 +213,14 @@ All routes are prefixed with `/api/v1`.
 ### Auth (public)
 | Method | Path | Description |
 |---|---|---|
-| POST | `/auth/register` | Create a new account |
+| POST | `/auth/register` | Create a new account (sends verification email) |
 | POST | `/auth/login` | Login with email + password + captcha token → JWT + refresh token |
 | POST | `/auth/refresh` | Exchange refresh token for new JWT |
 | POST | `/auth/forgot-password` | Send password reset email |
 | POST | `/auth/reset-password` | Consume reset token + set new password |
 | POST | `/auth/logout` | Revoke refresh token (requires valid JWT) |
+| POST | `/auth/verify` | Consume verification or invitation token. Body: `{ token, password? }` |
+| POST | `/auth/resend-verification` | Resend verification email for unverified self-registered users. Body: `{ email }` |
 
 ### Posts
 | Method | Path | Auth | Description |
@@ -242,11 +257,12 @@ All routes are prefixed with `/api/v1`.
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/users` | `user:manage` | List active (non-deleted) users |
-| POST | `/users` | `user:create` | Create a user account (superadmin) |
+| POST | `/users` | `user:create` | Create user account (no password); sends invitation email |
 | PUT | `/users/:id` | `user:update` | Update a user's profile/email (superadmin) |
 | DELETE | `/users/:id` | `user:delete` | Soft delete a user account (sets `deleted_at`); revokes all refresh tokens |
 | POST | `/users/:id/roles` | `user:manage` | Assign role to user |
 | DELETE | `/users/:id/roles/:roleId` | `user:manage` | Remove role from user |
+| POST | `/users/:id/resend-invitation` | `user:create` | Resend invitation email. Returns `409` if already verified |
 
 ### Profile (self)
 | Method | Path | Auth | Description |
@@ -271,6 +287,47 @@ All routes are prefixed with `/api/v1`.
 - Login requires a valid **CAPTCHA token** (hCaptcha or Google reCAPTCHA v2/v3), verified server-side
 - Password reset tokens are single-use, hashed before storage, expire after 1 hour
 - `last_login_at` on the user record is updated on every successful login
+- **Login guard:** If `email_verified_at IS NULL` → return `403` with code `EMAIL_NOT_VERIFIED`
+
+### Email Verification & Invitation
+
+Two flows share the same `UserVerificationToken` table and `POST /auth/verify` endpoint, differentiated by `type`.
+
+**Flow A — Superadmin creates a user (`POST /users`):**
+1. User record created: `password_hash = NULL`, `email_verified_at = NULL`
+2. `invitation` token generated (raw token → SHA-256 hash stored)
+3. Invitation email sent: link to `{FRONTEND_URL}/accept-invitation?token={raw}`
+4. On `POST /auth/verify` with `{ token, password }`:
+   - Token validated (not expired, not used)
+   - `password` field **required** — validated against full complexity rules
+   - `password_hash` set, `email_verified_at = NOW()`, token marked `used_at`
+   - Fires `user.invitation_accepted` audit event
+
+**Flow B — Self-registration (`POST /auth/register`):**
+1. User record created: `password_hash` set, `email_verified_at = NULL`
+2. `email_verification` token generated
+3. Verification email sent: link to `{FRONTEND_URL}/verify-email?token={raw}`
+4. On `POST /auth/verify` with `{ token }`:
+   - Token validated
+   - `password` field ignored
+   - `email_verified_at = NOW()`, token marked `used_at`
+   - Fires `user.email_verified` audit event
+
+**Resend flows:**
+- `POST /auth/resend-verification` (public): for self-registered unverified users — invalidates previous token, issues and emails a new one
+- `POST /users/:id/resend-invitation` (`user:create`): for superadmin-invited unverified users — same invalidation + re-issue; returns `409` if already verified
+
+**Token error codes:**
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `TOKEN_INVALID` | 400 | Token not found or already used |
+| `TOKEN_EXPIRED` | 400 | Token older than 24 hours |
+| `PASSWORD_REQUIRED` | 400 | Invitation token consumed without a `password` field |
+| `EMAIL_NOT_VERIFIED` | 403 | Login attempted on unverified account |
+| `USER_ALREADY_VERIFIED` | 409 | Resend attempted on already-verified user |
+
+**Frontend URL** for email links is configured via `FRONTEND_URL` env var.
 
 ### Password Complexity
 
@@ -386,7 +443,7 @@ Both fields are returned in all post response objects — both the list (`GET /p
 
 ### Email
 - Sent via **SMTP** (provider-agnostic: SendGrid, Resend, Mailgun, self-hosted)
-- Transactional emails: password reset link
+- Transactional emails: password reset link, email verification link, invitation link
 - HTML + plain text templates
 
 ### CORS
@@ -408,7 +465,9 @@ type AuditLogger interface {
 
 | Event Code | Trigger |
 |---|---|
-| `user.registered` | New account created via register endpoint |
+| `user.registered` | New account created via register endpoint (email verification pending) |
+| `user.email_verified` | Self-registered user verified their email |
+| `user.invitation_accepted` | Superadmin-invited user accepted invitation and set password |
 | `user.login` | Successful login |
 | `user.login_failed` | Failed login (wrong password or captcha rejection) |
 | `user.logout` | Refresh token revoked via logout |
@@ -468,6 +527,7 @@ CAPTCHA_PROVIDER        # recaptcha | hcaptcha
 CAPTCHA_SECRET
 
 ALLOWED_ORIGINS         # comma-separated list
+FRONTEND_URL            # Base URL for email verification/invitation links
 
 AUDIT_LOG_RETENTION_DAYS  # Default: 365
 SOFT_DELETE_RETENTION_DAYS  # Default: 90

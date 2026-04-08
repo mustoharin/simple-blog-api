@@ -91,6 +91,8 @@ simple-blog-api/
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
 | search_vector | tsvector | Auto-updated via trigger for full-text search |
+| view_count | bigint | Default 0; incremented atomically on each public fetch |
+| comment_count | int | Default 0; maintained by a DB trigger on the comments table |
 
 ### Tag
 | Field | Type |
@@ -258,6 +260,22 @@ All routes are prefixed with `/api/v1`.
 - PostgreSQL `tsvector` column on `posts`, populated via a DB trigger
 - `GIN` index on `search_vector` for fast queries
 - `GET /posts?q=keyword` uses `to_tsquery` + `ts_rank` for relevance ordering
+
+### Post Counters
+
+**`comment_count`** — maintained by a PostgreSQL trigger on the `comments` table:
+- Increments by 1 when a comment is inserted with `status = 'approved'`
+- Increments by 1 when a comment's status transitions **to** `'approved'`
+- Decrements by 1 when a comment's status transitions **from** `'approved'` to `'pending'` or `'rejected'`
+- Decrements by 1 when an `approved` comment is deleted
+
+**`view_count`** — incremented atomically in the `GetPostBySlug` usecase after a successful fetch of a `published` post:
+```sql
+UPDATE posts SET view_count = view_count + 1 WHERE id = $1
+```
+Draft post previews (admin access) must explicitly skip this increment. View counts are not audited.
+
+Both fields are returned in all post response objects — both the list (`GET /posts`) and detail (`GET /posts/:slug`) endpoints. On the detail endpoint the response reflects the already-incremented count.
 
 ### Image Uploads
 - Storage backend: **S3-compatible** (Cloudflare R2, MinIO, AWS S3)

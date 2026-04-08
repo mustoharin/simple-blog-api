@@ -29,7 +29,8 @@ func TestListPosts_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 2, out.Total)
 	assert.Len(t, out.Posts, 2)
-	mock.AssertExpectations(t, postRepo, postTagRepo)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
 }
 
 func TestListPosts_DefaultPage(t *testing.T) {
@@ -44,7 +45,8 @@ func TestListPosts_DefaultPage(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, out.Page)
-	mock.AssertExpectations(t, postRepo, postTagRepo)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
 }
 
 func TestListPosts_LimitClamped(t *testing.T) {
@@ -59,5 +61,6 @@ func TestListPosts_LimitClamped(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, 20, out.Limit)
-	mock.AssertExpectations(t, postRepo, postTagRepo)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
 }

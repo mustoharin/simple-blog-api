@@ -31,7 +31,8 @@ func TestTogglePublish_Publish(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-	mock.AssertExpectations(t, postRepo, audit)
+	postRepo.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }
 
 func TestTogglePublish_Unpublish(t *testing.T) {
@@ -54,7 +55,8 @@ func TestTogglePublish_Unpublish(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-	mock.AssertExpectations(t, postRepo, audit)
+	postRepo.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }
 
 func TestTogglePublish_NotFound(t *testing.T) {
@@ -70,5 +72,6 @@ func TestTogglePublish_NotFound(t *testing.T) {
 	})
 
 	assert.ErrorIs(t, err, domain.ErrNotFound)
-	mock.AssertExpectations(t, postRepo, audit)
+	postRepo.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }

@@ -25,7 +25,8 @@ func TestGetBySlug_Success_IncrementView(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	mock.AssertExpectations(t, postRepo, postTagRepo)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
 }
 
 func TestGetBySlug_Success_SkipIncrement(t *testing.T) {
@@ -42,7 +43,8 @@ func TestGetBySlug_Success_SkipIncrement(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	postRepo.AssertNotCalled(t, "IncrementViewCount", mock.Anything, mock.Anything)
-	mock.AssertExpectations(t, postRepo, postTagRepo)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
 }
 
 func TestGetBySlug_NotFound(t *testing.T) {
@@ -56,5 +58,6 @@ func TestGetBySlug_NotFound(t *testing.T) {
 
 	assert.Nil(t, result)
 	assert.ErrorIs(t, err, domain.ErrNotFound)
-	mock.AssertExpectations(t, postRepo, postTagRepo)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
 }

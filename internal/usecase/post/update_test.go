@@ -36,7 +36,9 @@ func TestUpdatePost_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	mock.AssertExpectations(t, postRepo, postTagRepo, audit)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }
 
 func TestUpdatePost_NotFound(t *testing.T) {
@@ -54,5 +56,7 @@ func TestUpdatePost_NotFound(t *testing.T) {
 
 	assert.Nil(t, result)
 	assert.ErrorIs(t, err, domain.ErrNotFound)
-	mock.AssertExpectations(t, postRepo, postTagRepo, audit)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }

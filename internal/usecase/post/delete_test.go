@@ -26,7 +26,9 @@ func TestDeletePost_Success(t *testing.T) {
 	err := uc.Execute(context.Background(), "p1", "u1", "actor@example.com")
 
 	assert.NoError(t, err)
-	mock.AssertExpectations(t, postRepo, commentRepo, audit)
+	postRepo.AssertExpectations(t)
+	commentRepo.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }
 
 func TestDeletePost_NotFound(t *testing.T) {
@@ -40,5 +42,7 @@ func TestDeletePost_NotFound(t *testing.T) {
 	err := uc.Execute(context.Background(), "missing", "u1", "actor@example.com")
 
 	assert.ErrorIs(t, err, domain.ErrNotFound)
-	mock.AssertExpectations(t, postRepo, commentRepo, audit)
+	postRepo.AssertExpectations(t)
+	commentRepo.AssertExpectations(t)
+	audit.AssertExpectations(t)
 }

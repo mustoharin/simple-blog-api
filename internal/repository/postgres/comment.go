@@ -56,6 +56,9 @@ func (r *CommentRepository) List(ctx context.Context, postID string, page, limit
 		}
 		comments = append(comments, c)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("comment list rows: %w", err)
+	}
 	return comments, total, nil
 }
 

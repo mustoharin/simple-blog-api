@@ -201,6 +201,7 @@ Indexes: `(actor_id)`, `(action)`, `(resource_type)`, `(created_at)`.
 | `user:update` | ✓ | | | | ← superadmin only |
 | `user:delete` | ✓ | | | | ← superadmin only |
 | `audit:read` | ✓ | ✓ | | |
+| `dashboard:read` | ✓ | ✓ | ✓ | |
 
 **Superadmin protection rule:** Only a superadmin can assign or remove the `superadmin` role. An admin with `user:manage` cannot elevate any user to superadmin.
 
@@ -277,6 +278,11 @@ All routes are prefixed with `/api/v1`.
 |---|---|---|---|
 | GET | `/audit-logs` | `audit:read` | List audit log entries. Query params: `actor_id`, `action`, `resource_type`, `resource_id`, `from`, `to`, `page`, `limit` |
 | GET | `/audit-logs/:id` | `audit:read` | Get a single audit log entry |
+
+### Dashboard
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/dashboard` | `dashboard:read` | Aggregated dashboard data. Query param: `range=7\|30\|90` (days, default `30`) |
 
 ---
 
@@ -505,6 +511,60 @@ type AuditLogger interface {
 **Special case — `user.login_failed`:** `actor_id` is `null`; `actor_email` holds the attempted email; `ip_address` is always captured.
 
 **Retention:** A background goroutine starts at server boot and runs once daily. It deletes rows where `created_at < NOW() - interval(AUDIT_LOG_RETENTION_DAYS days)`. Default: 365 days.
+
+---
+
+### Dashboard
+
+`GET /dashboard?range=7|30|90` — requires `dashboard:read`. Returns all widgets in a single response; the frontend polls every 30 seconds.
+
+**Response shape:**
+```jsonc
+{
+  "overview": {
+    "total_posts":    42,
+    "total_comments": 187,
+    "total_users":    12,
+    "total_images":   35
+  },
+  "post_analytics": {
+    "range_days": 30,
+    "top_by_views": [
+      { "id": "...", "title": "...", "slug": "...", "view_count": 1240, "published_at": "..." }
+      // top 5 published posts within the range window, ordered by view_count DESC
+    ],
+    "top_by_comments": [
+      { "id": "...", "title": "...", "slug": "...", "comment_count": 34, "published_at": "..." }
+      // top 5 published posts within the range window, ordered by comment_count DESC
+    ]
+  },
+  "recent_activity": [
+    { "id": "...", "action": "post.published", "actor_email": "...", "created_at": "..." }
+    // last 20 audit_log rows, ordered by created_at DESC
+  ],
+  "active_users": {
+    "count": 3,
+    "users": [
+      { "id": "...", "display_name": "...", "email": "...", "last_login_at": "..." }
+    ]
+  }
+}
+```
+
+**Data queries (all read-only, no transaction):**
+
+| Widget | Query |
+|---|---|
+| `overview.total_posts` | `COUNT(*) FROM posts WHERE deleted_at IS NULL` |
+| `overview.total_comments` | `COUNT(*) FROM comments WHERE deleted_at IS NULL` |
+| `overview.total_users` | `COUNT(*) FROM users WHERE deleted_at IS NULL` |
+| `overview.total_images` | `COUNT(*) FROM images WHERE deleted_at IS NULL` |
+| `top_by_views` | `SELECT … FROM posts WHERE deleted_at IS NULL AND published_at >= NOW() - {range} ORDER BY view_count DESC LIMIT 5` |
+| `top_by_comments` | `SELECT … FROM posts WHERE deleted_at IS NULL AND published_at >= NOW() - {range} ORDER BY comment_count DESC LIMIT 5` |
+| `recent_activity` | `SELECT id, action, actor_email, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 20` |
+| `active_users` | `SELECT … FROM users WHERE deleted_at IS NULL AND last_login_at >= NOW() - INTERVAL '15 minutes'` |
+
+**`range` validation:** Only `7`, `30`, and `90` are accepted values. Any other value returns `400 INVALID_RANGE`.
 
 ---
 

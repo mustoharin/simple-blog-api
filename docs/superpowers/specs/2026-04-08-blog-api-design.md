@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-Build a production-ready personal blog REST API in Go. The API will serve as the backend for a personal blog that will be deployed and actively used. It must support writing and publishing posts, tagging, moderated comments, S3 image uploads, RBAC-based authorization, and full-text search.
+Build a production-ready personal blog REST API in Go. The API will serve as the backend for a personal blog that will be deployed and actively used. It must support writing and publishing posts, tagging, moderated comments, S3 image uploads, RBAC-based authorization (superadmin / admin / editor / reader roles), full-text search, and a tamper-evident audit log of all admin activity.
 
 ---
 

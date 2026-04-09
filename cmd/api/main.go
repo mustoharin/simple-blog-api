@@ -23,6 +23,8 @@ import (
 	migrate "github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 
 	"simple-blog-api/config"
 	deliveryhttp "simple-blog-api/internal/delivery/http"
@@ -178,6 +180,7 @@ func main() {
 
 	// Run database migrations before starting jobs or serving traffic
 	runMigrations(cfg.DatabaseURL)
+	seedSuperAdmin(context.Background(), pool, cfg) // seed default superadmin
 
 	// Background jobs
 	jobs.RunRetentionPurge(pool, cfg.AuditLogRetentionDays, cfg.SoftDeleteRetentionDays)
@@ -222,6 +225,45 @@ func main() {
 		log.Fatalf("graceful shutdown: %v", err)
 	}
 	log.Println("server stopped")
+}
+
+func seedSuperAdmin(ctx context.Context, db *pgxpool.Pool, cfg *config.Config) {
+	if cfg.SeedAdminEmail == "" || cfg.SeedAdminPassword == "" {
+		log.Println("[seed] SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD not set, skipping superadmin seed")
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(cfg.SeedAdminPassword), bcrypt.DefaultCost)
+	if err != nil {
+		log.Printf("[seed] failed to hash password: %v", err)
+		return
+	}
+
+	var userID string
+	err = db.QueryRow(ctx, `
+		INSERT INTO users (email, password_hash, display_name, status)
+		VALUES ($1, $2, 'Super Admin', 'active')
+		ON CONFLICT (email) DO UPDATE
+			SET password_hash = EXCLUDED.password_hash,
+			    updated_at    = NOW()
+		RETURNING id
+	`, cfg.SeedAdminEmail, string(hash)).Scan(&userID)
+	if err != nil {
+		log.Printf("[seed] failed to upsert superadmin user: %v", err)
+		return
+	}
+
+	_, err = db.Exec(ctx, `
+		INSERT INTO user_roles (user_id, role_id)
+		SELECT $1, id FROM roles WHERE name = 'superadmin'
+		ON CONFLICT DO NOTHING
+	`, userID)
+	if err != nil {
+		log.Printf("[seed] failed to assign superadmin role: %v", err)
+		return
+	}
+
+	log.Printf("[seed] superadmin user ready: %s", cfg.SeedAdminEmail)
 }
 
 func runMigrations(databaseURL string) {

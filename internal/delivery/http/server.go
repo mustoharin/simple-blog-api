@@ -4,7 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	_ "simple-blog-api/docs"
 	"simple-blog-api/internal/delivery/http/handler"
 	"simple-blog-api/internal/delivery/http/middleware"
 )
@@ -105,6 +108,10 @@ func SetupRouter(deps RouterDeps) *gin.Engine {
 	r.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.URL("/swagger/doc.json"),
+	))
 
 	return r
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	_ "simple-blog-api/internal/domain"
 	"simple-blog-api/internal/delivery/http/middleware"
 	imageuc "simple-blog-api/internal/usecase/image"
 )
@@ -19,6 +20,22 @@ func NewImageHandler(upload *imageuc.UploadImageUsecase, deleteUC *imageuc.Delet
 	return &ImageHandler{upload: upload, delete: deleteUC}
 }
 
+// UploadImage godoc
+// @Summary      Upload an image
+// @Description  Uploads an image file (max 10MB)
+// @Tags         images
+// @Accept       mpfd
+// @Produce      json
+// @Security     BearerAuth
+// @Param        file  formData  file  true  "Image file"
+// @Success      201  {object}  domain.Image
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      413  {object}  errorResponse
+// @Failure      422  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /images [post]
 func (h *ImageHandler) UploadImage(c *gin.Context) {
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
@@ -55,6 +72,19 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 	c.JSON(http.StatusCreated, img)
 }
 
+// DeleteImage godoc
+// @Summary      Delete an image
+// @Description  Deletes an image by ID
+// @Tags         images
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  string  true  "Image ID"
+// @Success      200  {object}  map[string]string
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /images/{id} [delete]
 func (h *ImageHandler) DeleteImage(c *gin.Context) {
 	actorID, _ := c.Get(middleware.ContextKeyUserID)
 	actorEmail, _ := c.Get(middleware.ContextKeyEmail)

@@ -38,6 +38,20 @@ func NewPostHandler(
 	}
 }
 
+// ListPosts godoc
+// @Summary      List posts
+// @Description  Returns a paginated list of blog posts
+// @Tags         posts
+// @Produce      json
+// @Param        page    query  int     false  "Page number"     default(1)
+// @Param        limit   query  int     false  "Items per page"  default(20)
+// @Param        q       query  string  false  "Search query"
+// @Param        tag     query  string  false  "Filter by tag"
+// @Param        author  query  string  false  "Filter by author ID"
+// @Param        sort    query  string  false  "Sort order"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      500  {object}  errorResponse
+// @Router       /posts [get]
 func (h *PostHandler) ListPosts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
@@ -62,6 +76,16 @@ func (h *PostHandler) ListPosts(c *gin.Context) {
 	})
 }
 
+// GetPost godoc
+// @Summary      Get a post
+// @Description  Returns a single blog post by slug or UUID
+// @Tags         posts
+// @Produce      json
+// @Param        id  path  string  true  "Post slug or UUID"
+// @Success      200  {object}  domain.Post
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id} [get]
 func (h *PostHandler) GetPost(c *gin.Context) {
 	p, err := h.getBySlug.Execute(c.Request.Context(), c.Param("id"), false)
 	if err != nil {
@@ -80,6 +104,20 @@ type createPostRequest struct {
 	TagIDs        []string `json:"tag_ids"`
 }
 
+// CreatePost godoc
+// @Summary      Create a post
+// @Description  Creates a new blog post
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body  createPostRequest  true  "Post data"
+// @Success      201  {object}  domain.Post
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts [post]
 func (h *PostHandler) CreatePost(c *gin.Context) {
 	var req createPostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -117,6 +155,22 @@ type updatePostRequest struct {
 	TagIDs        []string `json:"tag_ids"`
 }
 
+// UpdatePost godoc
+// @Summary      Update a post
+// @Description  Updates an existing blog post
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string           true  "Post ID"
+// @Param        body  body  updatePostRequest  true  "Post data"
+// @Success      200  {object}  domain.Post
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id} [put]
 func (h *PostHandler) UpdatePost(c *gin.Context) {
 	var req updatePostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -150,6 +204,22 @@ type togglePublishRequest struct {
 	Published bool `json:"published"`
 }
 
+// TogglePublish godoc
+// @Summary      Toggle post publish status
+// @Description  Publishes or unpublishes a blog post
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path  string               true  "Post ID"
+// @Param        body  body  togglePublishRequest  true  "Publish flag"
+// @Success      200  {object}  map[string]bool
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id}/publish [patch]
 func (h *PostHandler) TogglePublish(c *gin.Context) {
 	var req togglePublishRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -170,6 +240,19 @@ func (h *PostHandler) TogglePublish(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"published": req.Published})
 }
 
+// DeletePost godoc
+// @Summary      Delete a post
+// @Description  Deletes a blog post
+// @Tags         posts
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  string  true  "Post ID"
+// @Success      200  {object}  map[string]string
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id} [delete]
 func (h *PostHandler) DeletePost(c *gin.Context) {
 	actorID, _ := c.Get(middleware.ContextKeyUserID)
 	actorEmail, _ := c.Get(middleware.ContextKeyEmail)

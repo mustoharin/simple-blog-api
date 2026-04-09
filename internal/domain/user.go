@@ -11,17 +11,17 @@ const (
 )
 
 type User struct {
-	ID           string
-	Email        string
-	PasswordHash *string
-	DisplayName  string
-	Bio          string
-	AvatarURL    string
-	LastLoginAt  *time.Time
-	Status       UserStatus
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    *time.Time
-	Roles        []Role
-	Permissions  []string
+	ID           string     `json:"id"`
+	Email        string     `json:"email"`
+	PasswordHash *string    `json:"-"`
+	DisplayName  string     `json:"display_name"`
+	Bio          string     `json:"bio"`
+	AvatarURL    string     `json:"avatar_url"`
+	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
+	Status       UserStatus `json:"status"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	DeletedAt    *time.Time `json:"-"`
+	Roles        []Role     `json:"roles,omitempty"`
+	Permissions  []string   `json:"permissions,omitempty"`
 }

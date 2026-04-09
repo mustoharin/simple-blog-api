@@ -3,10 +3,10 @@ package domain
 import "time"
 
 type Image struct {
-	ID         string
-	Filename   string
-	S3Key      string
-	URL        string
-	UploadedBy string
-	CreatedAt  time.Time
+	ID         string    `json:"id"`
+	Filename   string    `json:"filename"`
+	S3Key      string    `json:"s3_key"`
+	URL        string    `json:"url"`
+	UploadedBy string    `json:"uploaded_by"`
+	CreatedAt  time.Time `json:"created_at"`
 }

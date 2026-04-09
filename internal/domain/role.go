@@ -1,15 +1,15 @@
 package domain
 
 type Role struct {
-	ID          string
-	Name        string
-	Description string
-	Permissions []Permission
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Permissions []Permission `json:"permissions,omitempty"`
 }
 
 type Permission struct {
-	ID   string
-	Name string
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 const (

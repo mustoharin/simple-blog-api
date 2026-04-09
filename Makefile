@@ -1,4 +1,4 @@
-.PHONY: help build up down logs migrate-up migrate-down restart clean test
+.PHONY: help build up down logs migrate-up migrate-down restart clean test docs
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -56,6 +56,9 @@ create-bucket: ## Create MinIO bucket for development
 	@docker compose exec -T minio mc mb local/blog-images 2>/dev/null || echo "Bucket already exists"
 	@docker compose exec -T minio mc anonymous set public local/blog-images
 	@echo "Bucket created and set to public access"
+
+docs: ## Regenerate Swagger docs (requires: go install github.com/swaggo/swag/cmd/swag@latest)
+	swag init -g cmd/api/main.go -o docs
 
 setup: up ## Complete setup - start services and initialize
 	@echo "Waiting for services to be ready..."

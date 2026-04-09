@@ -11,12 +11,12 @@ const (
 )
 
 type Comment struct {
-	ID        string
-	PostID    string
-	AuthorID  string
-	Body      string
-	Status    CommentStatus
-	CreatedAt time.Time
-	DeletedAt *time.Time
-	Author    *User
+	ID        string        `json:"id"`
+	PostID    string        `json:"post_id"`
+	AuthorID  string        `json:"author_id"`
+	Body      string        `json:"body"`
+	Status    CommentStatus `json:"status"`
+	CreatedAt time.Time     `json:"created_at"`
+	DeletedAt *time.Time    `json:"-"`
+	Author    *User         `json:"author,omitempty"`
 }

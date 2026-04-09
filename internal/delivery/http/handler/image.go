@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
 
 	_ "simple-blog-api/internal/domain"
@@ -50,10 +51,8 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
-	contentType := header.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	// Detect MIME type from file magic bytes — do not trust client-supplied Content-Type
+	contentType := mimetype.Detect(data).String()
 
 	actorID, _ := c.Get(middleware.ContextKeyUserID)
 	actorEmail, _ := c.Get(middleware.ContextKeyEmail)

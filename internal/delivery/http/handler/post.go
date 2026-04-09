@@ -87,7 +87,7 @@ func (h *PostHandler) ListPosts(c *gin.Context) {
 // @Failure      500  {object}  errorResponse
 // @Router       /posts/{id} [get]
 func (h *PostHandler) GetPost(c *gin.Context) {
-	p, err := h.getBySlug.Execute(c.Request.Context(), c.Param("id"), false)
+	p, err := h.getBySlug.Execute(c.Request.Context(), c.Param("id"), false, true)
 	if err != nil {
 		respondError(c, err)
 		return

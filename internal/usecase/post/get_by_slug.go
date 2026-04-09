@@ -15,7 +15,7 @@ func NewGetBySlugUsecase(posts domain.PostRepository, postTags domain.PostTagRep
 	return &GetBySlugUsecase{posts: posts, postTags: postTags}
 }
 
-func (uc *GetBySlugUsecase) Execute(ctx context.Context, slug string, skipViewIncrement bool) (*domain.Post, error) {
+func (uc *GetBySlugUsecase) Execute(ctx context.Context, slug string, skipViewIncrement bool, publicOnly bool) (*domain.Post, error) {
 	p, err := uc.posts.GetBySlug(ctx, slug)
 	if err != nil {
 		return nil, err
@@ -23,6 +23,10 @@ func (uc *GetBySlugUsecase) Execute(ctx context.Context, slug string, skipViewIn
 
 	tags, _ := uc.postTags.GetTagsForPost(ctx, p.ID)
 	p.Tags = tags
+
+	if publicOnly && p.Status != domain.PostStatusPublished {
+		return nil, domain.ErrNotFound
+	}
 
 	if p.Status == domain.PostStatusPublished && !skipViewIncrement {
 		_ = uc.posts.IncrementViewCount(ctx, p.ID)

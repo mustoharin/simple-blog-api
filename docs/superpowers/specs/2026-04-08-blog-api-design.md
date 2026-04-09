@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-Build a production-ready personal blog REST API in Go. The API will serve as the backend for a personal blog that will be deployed and actively used. It must support writing and publishing posts, tagging, moderated comments, S3 image uploads, RBAC-based authorization (superadmin / admin / editor / reader roles), full-text search, and a tamper-evident audit log of all admin activity.
+Build a production-ready personal blog REST API in Go. The API will serve as the backend for a personal blog that will be deployed and actively used. It must support writing and publishing posts, tagging, moderated comments, S3 image uploads, RBAC-based authorization (superadmin / admin / editor / commenter roles), full-text search, and a tamper-evident audit log of all admin activity.
 
 ---
 
@@ -70,7 +70,7 @@ Self-registered users (`POST /auth/register`) are created with `status = active`
 | Field | Type | Notes |
 |---|---|---|
 | id | UUID | Primary key |
-| name | text | Unique (admin, editor, reader) |
+| name | text | Unique (admin, editor, commenter) |
 | description | text | |
 
 ### Permission
@@ -187,7 +187,7 @@ Indexes: `(actor_id)`, `(action)`, `(resource_type)`, `(created_at)`.
 
 ## RBAC — Default Roles & Permissions
 
-| Permission | superadmin | admin | editor | reader |
+| Permission | superadmin | admin | editor | commenter |
 |---|:---:|:---:|:---:|:---:|
 | `post:create` | ✓ | ✓ | ✓ | |
 | `post:edit` | ✓ | ✓ | ✓ | |

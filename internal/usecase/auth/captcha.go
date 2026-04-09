@@ -106,8 +106,18 @@ func (v *reCaptchaVerifier) Verify(ctx context.Context, token string) error {
 	return nil
 }
 
+// noopCaptchaVerifier skips verification entirely (used when CAPTCHA_SECRET is empty).
+type noopCaptchaVerifier struct{}
+
+func (noopCaptchaVerifier) Verify(_ context.Context, _ string) error { return nil }
+
 // NewCaptchaVerifier returns the appropriate verifier based on provider name.
+// When secret is empty, a noop verifier is returned so local/test environments
+// can call the API without configuring a real captcha secret.
 func NewCaptchaVerifier(provider, secret string) (CaptchaVerifier, error) {
+	if secret == "" {
+		return noopCaptchaVerifier{}, nil
+	}
 	switch strings.ToLower(provider) {
 	case "hcaptcha":
 		return NewHCaptchaVerifier(secret), nil

@@ -23,6 +23,7 @@ import (
 	migrate "github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 
@@ -239,25 +240,43 @@ func seedSuperAdmin(ctx context.Context, db *pgxpool.Pool, cfg *config.Config) {
 		return
 	}
 
+	// Insert new superadmin user; skip if already exists
 	var userID string
 	err = db.QueryRow(ctx, `
 		INSERT INTO users (email, password_hash, display_name, status)
 		VALUES ($1, $2, 'Super Admin', 'active')
-		ON CONFLICT (email) DO UPDATE
-			SET password_hash = EXCLUDED.password_hash,
-			    updated_at    = NOW()
+		ON CONFLICT (email) DO NOTHING
 		RETURNING id
 	`, cfg.SeedAdminEmail, string(hash)).Scan(&userID)
+
 	if err != nil {
-		log.Printf("[seed] failed to upsert superadmin user: %v", err)
+		// pgx returns pgx.ErrNoRows when ON CONFLICT DO NOTHING fires (no row returned)
+		// In that case look up the existing user ID
+		if !errors.Is(err, pgx.ErrNoRows) {
+			log.Printf("[seed] failed to upsert superadmin user: %v", err)
+			return
+		}
+		// User already exists — fetch their ID
+		err = db.QueryRow(ctx, `SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL`,
+			cfg.SeedAdminEmail).Scan(&userID)
+		if err != nil {
+			log.Printf("[seed] failed to look up existing superadmin: %v", err)
+			return
+		}
+	}
+
+	// Resolve superadmin role ID explicitly so we detect if it's missing
+	var roleID string
+	err = db.QueryRow(ctx, `SELECT id FROM roles WHERE name = 'superadmin'`).Scan(&roleID)
+	if err != nil {
+		log.Printf("[seed] superadmin role not found in roles table: %v", err)
 		return
 	}
 
 	_, err = db.Exec(ctx, `
-		INSERT INTO user_roles (user_id, role_id)
-		SELECT $1, id FROM roles WHERE name = 'superadmin'
-		ON CONFLICT DO NOTHING
-	`, userID)
+		INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)
+		ON CONFLICT (user_id, role_id) DO NOTHING
+	`, userID, roleID)
 	if err != nil {
 		log.Printf("[seed] failed to assign superadmin role: %v", err)
 		return

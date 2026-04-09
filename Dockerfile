@@ -16,20 +16,16 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
-# Install golang-migrate
-RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-
 # Final stage
-FROM alpine:latest
+FROM alpine:3.21
 
-RUN apk --no-cache add ca-certificates postgresql-client bash
+RUN apk --no-cache add ca-certificates bash
 
 WORKDIR /root/
 
 # Copy the binary from builder
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh

@@ -1,0 +1,99 @@
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+
+	"simple-blog-api/internal/delivery/http/middleware"
+	commentuc "simple-blog-api/internal/usecase/comment"
+)
+
+type CommentHandler struct {
+	create       *commentuc.CreateCommentUsecase
+	list         *commentuc.ListCommentsUsecase
+	updateStatus *commentuc.UpdateStatusUsecase
+	delete       *commentuc.DeleteCommentUsecase
+}
+
+func NewCommentHandler(
+	create *commentuc.CreateCommentUsecase,
+	list *commentuc.ListCommentsUsecase,
+	updateStatus *commentuc.UpdateStatusUsecase,
+	deleteUC *commentuc.DeleteCommentUsecase,
+) *CommentHandler {
+	return &CommentHandler{create: create, list: list, updateStatus: updateStatus, delete: deleteUC}
+}
+
+func (h *CommentHandler) ListComments(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	out, err := h.list.Execute(c.Request.Context(), c.Param("id"), page, limit)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"comments": out.Comments,
+		"total":    out.Total,
+		"page":     out.Page,
+		"limit":    out.Limit,
+	})
+}
+
+type createCommentRequest struct {
+	Body string `json:"body" binding:"required"`
+}
+
+func (h *CommentHandler) CreateComment(c *gin.Context) {
+	var req createCommentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
+		return
+	}
+	actorID, _ := c.Get(middleware.ContextKeyUserID)
+	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	comment, err := h.create.Execute(c.Request.Context(), commentuc.CreateCommentInput{
+		PostID:      c.Param("id"),
+		AuthorID:    actorID.(string),
+		AuthorEmail: actorEmail.(string),
+		Body:        req.Body,
+	})
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, comment)
+}
+
+type updateCommentStatusRequest struct {
+	Status string `json:"status" binding:"required,oneof=approved rejected"`
+}
+
+func (h *CommentHandler) UpdateCommentStatus(c *gin.Context) {
+	var req updateCommentStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
+		return
+	}
+	actorID, _ := c.Get(middleware.ContextKeyUserID)
+	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	if err := h.updateStatus.Execute(c.Request.Context(),
+		c.Param("id"), req.Status, actorID.(string), actorEmail.(string)); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": req.Status})
+}
+
+func (h *CommentHandler) DeleteComment(c *gin.Context) {
+	actorID, _ := c.Get(middleware.ContextKeyUserID)
+	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	if err := h.delete.Execute(c.Request.Context(),
+		c.Param("id"), actorID.(string), actorEmail.(string)); err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Comment deleted"})
+}

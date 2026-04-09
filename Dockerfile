@@ -16,20 +16,31 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
-# Final stage
+# Runtime stage
 FROM alpine:3.21
 
-RUN apk --no-cache add ca-certificates bash
+# Install only what's needed: ca-certificates for TLS, wget for healthcheck
+RUN apk --no-cache add ca-certificates wget
 
-WORKDIR /root/
+# Create non-root group and user with /bin/sh for debugging
+RUN addgroup -S appgroup && \
+    adduser -S -G appgroup -s /bin/sh appuser
 
-# Copy the binary from builder
+WORKDIR /app
+
+# Copy binary and migrations from builder
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrations ./migrations
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Transfer ownership to appuser
+RUN chown -R appuser:appgroup /app
+
+# Run as non-root
+USER appuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -qO- http://localhost:8080/healthz || exit 1
+
+CMD ["./main"]

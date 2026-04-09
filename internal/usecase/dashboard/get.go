@@ -44,7 +44,7 @@ func (uc *GetDashboardUsecase) Execute(ctx context.Context, rangeDays int) (doma
 		return domain.DashboardResponse{}, err
 	}
 
-	recentActivity, err := uc.repo.GetRecentActivity(ctx, 10)
+	recentActivity, err := uc.repo.GetRecentActivity(ctx, 20)
 	if err != nil {
 		return domain.DashboardResponse{}, err
 	}

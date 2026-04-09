@@ -82,7 +82,7 @@ func (uc *CreateUserUsecase) Execute(ctx context.Context, in CreateUserInput) (*
 		ID:        uuid.NewString(),
 		UserID:    newUser.ID,
 		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	if err := uc.invTokens.Create(ctx, inv); err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (uc *CreateUserUsecase) Execute(ctx context.Context, in CreateUserInput) (*
 	inviteURL := fmt.Sprintf("%s/accept-invitation?token=%s", uc.frontendURL, rawTokenStr)
 	go func() {
 		_ = uc.email.Send(newUser.Email, "You've been invited",
-			fmt.Sprintf(`<p>Click <a href="%s">here</a> to accept your invitation. Expires in 7 days.</p>`, inviteURL))
+			fmt.Sprintf(`<p>Click <a href="%s">here</a> to accept your invitation. Expires in 24 hours.</p>`, inviteURL))
 	}()
 
 	actorID := in.ActorID

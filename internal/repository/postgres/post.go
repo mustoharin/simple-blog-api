@@ -177,15 +177,22 @@ func (r *PostRepository) IncrementViewCount(ctx context.Context, id string) erro
 }
 
 func (r *PostRepository) SetPublished(ctx context.Context, id string, published bool) error {
-	var query string
+	var err error
+	var tag interface{ RowsAffected() int64 }
 	if published {
-		query = `UPDATE posts SET status='published', published_at=$2, updated_at=NOW()
-                 WHERE id=$1 AND deleted_at IS NULL`
-		_, err := r.db.Exec(ctx, query, id, time.Now())
-		return err
+		tag, err = r.db.Exec(ctx,
+			`UPDATE posts SET status='published', published_at=$2, updated_at=NOW() WHERE id=$1 AND deleted_at IS NULL`,
+			id, time.Now())
+	} else {
+		tag, err = r.db.Exec(ctx,
+			`UPDATE posts SET status='draft', published_at=NULL, updated_at=NOW() WHERE id=$1 AND deleted_at IS NULL`,
+			id)
 	}
-	query = `UPDATE posts SET status='draft', published_at=NULL, updated_at=NOW()
-             WHERE id=$1 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, query, id)
-	return err
+	if err != nil {
+		return fmt.Errorf("post set published: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }

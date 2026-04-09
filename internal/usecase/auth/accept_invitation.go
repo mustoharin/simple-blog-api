@@ -49,7 +49,10 @@ func (uc *AcceptInvitationUsecase) Execute(ctx context.Context, rawToken, newPas
 		return err
 	}
 
-	if inv.UsedAt != nil || inv.ExpiresAt.Before(time.Now()) {
+	if inv.UsedAt != nil {
+		return domain.ErrTokenUsed
+	}
+	if inv.ExpiresAt.Before(time.Now()) {
 		return domain.ErrTokenExpired
 	}
 

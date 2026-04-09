@@ -69,7 +69,7 @@ func (uc *ResendInvitationUsecase) Execute(ctx context.Context, userID, actorID,
 		ID:        uuid.NewString(),
 		UserID:    userID,
 		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 	if err := uc.invTokens.Create(ctx, inv); err != nil {
 		return err
@@ -78,7 +78,7 @@ func (uc *ResendInvitationUsecase) Execute(ctx context.Context, userID, actorID,
 	inviteURL := fmt.Sprintf("%s/accept-invitation?token=%s", uc.frontendURL, rawTokenStr)
 	go func() {
 		_ = uc.email.Send(u.Email, "Your invitation has been resent",
-			fmt.Sprintf(`<p>Click <a href="%s">here</a> to accept your invitation. Expires in 7 days.</p>`, inviteURL))
+			fmt.Sprintf(`<p>Click <a href="%s">here</a> to accept your invitation. Expires in 24 hours.</p>`, inviteURL))
 	}()
 
 	go func() {

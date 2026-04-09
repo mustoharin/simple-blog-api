@@ -87,10 +87,3 @@ type AuditLogRepository interface {
 	DeleteOlderThan(ctx context.Context, days int) error
 }
 
-type DashboardRepository interface {
-	GetOverview(ctx context.Context) (map[string]int64, error)
-	GetTopPostsByViews(ctx context.Context, days, limit int) ([]*Post, error)
-	GetTopPostsByComments(ctx context.Context, days, limit int) ([]*Post, error)
-	GetRecentActivity(ctx context.Context, limit int) ([]*AuditLog, error)
-	GetActiveUsers(ctx context.Context, sinceMinutes int) ([]*User, error)
-}

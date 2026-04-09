@@ -52,7 +52,10 @@ func (uc *ResetPasswordUsecase) Execute(ctx context.Context, rawToken, newPasswo
 		return err
 	}
 
-	if prt.UsedAt != nil || prt.ExpiresAt.Before(time.Now()) {
+	if prt.UsedAt != nil {
+		return domain.ErrTokenUsed
+	}
+	if prt.ExpiresAt.Before(time.Now()) {
 		return domain.ErrTokenExpired
 	}
 

@@ -47,6 +47,9 @@ func (m *mockUserRepo) UpdateStatus(ctx context.Context, id string, s domain.Use
 func (m *mockUserRepo) UpdateLastLogin(ctx context.Context, id string) error {
 	return m.Called(ctx, id).Error(0)
 }
+func (m *mockUserRepo) UpdatePasswordHash(ctx context.Context, id, passwordHash string) error {
+	return m.Called(ctx, id, passwordHash).Error(0)
+}
 func (m *mockUserRepo) AssignRole(ctx context.Context, userID, roleID string) error {
 	return m.Called(ctx, userID, roleID).Error(0)
 }

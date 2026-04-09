@@ -33,10 +33,17 @@ func NewHCaptchaVerifier(secret string) CaptchaVerifier {
 }
 
 func (v *hCaptchaVerifier) Verify(ctx context.Context, token string) error {
-	resp, err := v.client.PostForm(v.siteURL, url.Values{
+	body := strings.NewReader(url.Values{
 		"secret":   {v.secret},
 		"response": {token},
-	})
+	}.Encode())
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.siteURL, body)
+	if err != nil {
+		return domain.ErrInvalidCaptcha
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := v.client.Do(req)
 	if err != nil {
 		return domain.ErrInvalidCaptcha
 	}

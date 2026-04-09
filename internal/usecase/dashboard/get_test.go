@@ -48,7 +48,7 @@ func TestGetDashboard_ValidRange(t *testing.T) {
 	repo.On("GetOverview", mock.Anything).Return(overview, nil)
 	repo.On("GetTopPostsByViews", mock.Anything, 30, 5).Return([]domain.PostAnalyticItem{}, nil)
 	repo.On("GetTopPostsByComments", mock.Anything, 30, 5).Return([]domain.PostAnalyticItem{}, nil)
-	repo.On("GetRecentActivity", mock.Anything, 10).Return([]domain.RecentActivityItem{}, nil)
+	repo.On("GetRecentActivity", mock.Anything, 20).Return([]domain.RecentActivityItem{}, nil)
 	repo.On("GetActiveUsers", mock.Anything, 15).Return([]domain.ActiveUserItem{}, nil)
 
 	uc := dashboard.NewGetDashboardUsecase(repo)

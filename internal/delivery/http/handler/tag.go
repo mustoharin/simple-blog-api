@@ -23,6 +23,14 @@ func NewTagHandler(
 	return &TagHandler{create: create, list: list, delete: deleteUC}
 }
 
+// ListTags godoc
+// @Summary      List all tags
+// @Description  Returns all tags
+// @Tags         tags
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Failure      500  {object}  errorResponse
+// @Router       /tags [get]
 func (h *TagHandler) ListTags(c *gin.Context) {
 	tags, err := h.list.Execute(c.Request.Context())
 	if err != nil {
@@ -36,6 +44,21 @@ type createTagRequest struct {
 	Name string `json:"name" binding:"required"`
 }
 
+// CreateTag godoc
+// @Summary      Create a tag
+// @Description  Creates a new tag
+// @Tags         tags
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body  createTagRequest  true  "Tag name"
+// @Success      201  {object}  map[string]interface{}
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      409  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /tags [post]
 func (h *TagHandler) CreateTag(c *gin.Context) {
 	var req createTagRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -52,6 +75,19 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 	c.JSON(http.StatusCreated, t)
 }
 
+// DeleteTag godoc
+// @Summary      Delete a tag
+// @Description  Deletes a tag by ID
+// @Tags         tags
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  string  true  "Tag ID"
+// @Success      200  {object}  map[string]string
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /tags/{id} [delete]
 func (h *TagHandler) DeleteTag(c *gin.Context) {
 	actorID, _ := c.Get(middleware.ContextKeyUserID)
 	actorEmail, _ := c.Get(middleware.ContextKeyEmail)

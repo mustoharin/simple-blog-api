@@ -27,6 +27,16 @@ func NewProfileHandler(
 	}
 }
 
+// GetMe godoc
+// @Summary      Get current user profile
+// @Description  Returns the authenticated user's profile
+// @Tags         profile
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]interface{}
+// @Failure      401  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /me [get]
 func (h *ProfileHandler) GetMe(c *gin.Context) {
 	userID, _ := c.Get(middleware.ContextKeyUserID)
 	u, err := h.getMe.Execute(c.Request.Context(), userID.(string))
@@ -43,6 +53,19 @@ type updateMeRequest struct {
 	AvatarURL   string `json:"avatar_url"`
 }
 
+// UpdateMe godoc
+// @Summary      Update current user profile
+// @Description  Updates the authenticated user's profile
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body  updateMeRequest  true  "Profile data"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /me [patch]
 func (h *ProfileHandler) UpdateMe(c *gin.Context) {
 	var req updateMeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -68,6 +91,20 @@ type changePasswordRequest struct {
 	NewPassword     string `json:"new_password"     binding:"required"`
 }
 
+// ChangePassword godoc
+// @Summary      Change password
+// @Description  Changes the authenticated user's password
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body  changePasswordRequest  true  "Current and new password"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      422  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /me/change-password [post]
 func (h *ProfileHandler) ChangePassword(c *gin.Context) {
 	var req changePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

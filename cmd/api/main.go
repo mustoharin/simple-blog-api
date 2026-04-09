@@ -1,3 +1,13 @@
+// @title           Simple Blog API
+// @version         1.0
+// @description     A production-ready personal blog REST API
+// @host            localhost:8080
+// @BasePath        /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
+// @description     Enter: Bearer {token}
+
 package main
 
 import (

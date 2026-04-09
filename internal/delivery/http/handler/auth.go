@@ -45,6 +45,19 @@ type registerRequest struct {
 	DisplayName string `json:"display_name"`
 }
 
+// Register godoc
+// @Summary      Register a new user
+// @Description  Creates a new user account
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  registerRequest  true  "Registration request"
+// @Success      201  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Failure      409  {object}  errorResponse
+// @Failure      422  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req registerRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -69,6 +82,20 @@ type loginRequest struct {
 	CaptchaToken string `json:"captcha_token" binding:"required"`
 }
 
+// Login godoc
+// @Summary      Login
+// @Description  Authenticates a user and returns JWT tokens
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  loginRequest  true  "Login credentials"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      422  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req loginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -96,6 +123,18 @@ type refreshRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+// Refresh godoc
+// @Summary      Refresh tokens
+// @Description  Exchanges a refresh token for new JWT tokens
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  refreshRequest  true  "Refresh token"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Failure      422  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /auth/refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req refreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -113,6 +152,19 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	})
 }
 
+// Logout godoc
+// @Summary      Logout
+// @Description  Invalidates the provided refresh token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body  body  refreshRequest  true  "Refresh token to invalidate"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Failure      401  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req refreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -130,6 +182,16 @@ type forgotPasswordRequest struct {
 	Email string `json:"email" binding:"required,email"`
 }
 
+// ForgotPassword godoc
+// @Summary      Forgot password
+// @Description  Sends a password reset email (always returns 200 to prevent enumeration)
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  forgotPasswordRequest  true  "Email address"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Router       /auth/forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	var req forgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -146,6 +208,18 @@ type resetPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required"`
 }
 
+// ResetPassword godoc
+// @Summary      Reset password
+// @Description  Resets a user's password using a valid reset token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  resetPasswordRequest  true  "Reset token and new password"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Failure      422  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /auth/reset-password [post]
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	var req resetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -164,6 +238,18 @@ type acceptInvitationRequest struct {
 	NewPassword string `json:"new_password" binding:"required"`
 }
 
+// AcceptInvitation godoc
+// @Summary      Accept invitation
+// @Description  Activates an invited user account using a valid invitation token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  acceptInvitationRequest  true  "Invitation token and new password"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  errorResponse
+// @Failure      422  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /auth/accept-invitation [post]
 func (h *AuthHandler) AcceptInvitation(c *gin.Context) {
 	var req acceptInvitationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

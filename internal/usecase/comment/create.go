@@ -34,8 +34,12 @@ func NewCreateCommentUsecase(posts PostGetter, comments domain.CommentRepository
 func (uc *CreateCommentUsecase) Execute(ctx context.Context, in CreateCommentInput) (*domain.Comment, error) {
 	in.Body = sanitize.SanitizeStrict(sanitize.Trim(in.Body))
 
-	if _, err := uc.posts.GetByID(ctx, in.PostID); err != nil {
+	p, err := uc.posts.GetByID(ctx, in.PostID)
+	if err != nil {
 		return nil, err
+	}
+	if p.Status != domain.PostStatusPublished {
+		return nil, domain.ErrNotFound
 	}
 
 	c := &domain.Comment{

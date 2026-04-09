@@ -80,6 +80,25 @@ func TestCreateComment_Success(t *testing.T) {
 	assert.Equal(t, "Great post!", c.Body)
 }
 
+func TestCreateComment_OnDraftPost_ReturnsNotFound(t *testing.T) {
+	postRepo := new(mockPostRepo)
+	commentRepo := new(mockCommentRepo)
+	audit := new(mockAuditLogger)
+
+	draft := &domain.Post{ID: "p2", Status: domain.PostStatusDraft}
+	postRepo.On("GetByID", mock.Anything, "p2").Return(draft, nil)
+
+	uc := comment.NewCreateCommentUsecase(postRepo, commentRepo, audit)
+	_, err := uc.Execute(context.Background(), comment.CreateCommentInput{
+		PostID:      "p2",
+		AuthorID:    "u1",
+		AuthorEmail: "alice@example.com",
+		Body:        "sneaky comment on draft",
+	})
+	assert.ErrorIs(t, err, domain.ErrNotFound, "should not allow comments on unpublished posts")
+	commentRepo.AssertNotCalled(t, "Create", mock.Anything, mock.Anything)
+}
+
 func TestCreateComment_PostNotFound(t *testing.T) {
 	postRepo := new(mockPostRepo)
 	commentRepo := new(mockCommentRepo)

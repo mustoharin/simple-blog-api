@@ -21,12 +21,12 @@ func (uc *GetBySlugUsecase) Execute(ctx context.Context, slug string, skipViewIn
 		return nil, err
 	}
 
-	tags, _ := uc.postTags.GetTagsForPost(ctx, p.ID)
-	p.Tags = tags
-
 	if publicOnly && p.Status != domain.PostStatusPublished {
 		return nil, domain.ErrNotFound
 	}
+
+	tags, _ := uc.postTags.GetTagsForPost(ctx, p.ID)
+	p.Tags = tags
 
 	if p.Status == domain.PostStatusPublished && !skipViewIncrement {
 		_ = uc.posts.IncrementViewCount(ctx, p.ID)

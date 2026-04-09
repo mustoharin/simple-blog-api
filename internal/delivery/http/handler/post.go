@@ -78,7 +78,7 @@ func (h *PostHandler) ListPosts(c *gin.Context) {
 
 // GetPost godoc
 // @Summary      Get a post
-// @Description  Returns a single blog post by slug or UUID
+// @Description  Returns a single published blog post by slug or UUID
 // @Tags         posts
 // @Produce      json
 // @Param        id  path  string  true  "Post slug or UUID"
@@ -88,6 +88,28 @@ func (h *PostHandler) ListPosts(c *gin.Context) {
 // @Router       /posts/{id} [get]
 func (h *PostHandler) GetPost(c *gin.Context) {
 	p, err := h.getBySlug.Execute(c.Request.Context(), c.Param("id"), false, true)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, p)
+}
+
+// PreviewPost godoc
+// @Summary      Preview a post (admin)
+// @Description  Returns a post by slug or UUID regardless of publish status. Requires post:edit permission.
+// @Tags         posts
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  string  true  "Post slug or UUID"
+// @Success      200  {object}  domain.Post
+// @Failure      401  {object}  errorResponse
+// @Failure      403  {object}  errorResponse
+// @Failure      404  {object}  errorResponse
+// @Failure      500  {object}  errorResponse
+// @Router       /posts/{id}/preview [get]
+func (h *PostHandler) PreviewPost(c *gin.Context) {
+	p, err := h.getBySlug.Execute(c.Request.Context(), c.Param("id"), true, false)
 	if err != nil {
 		respondError(c, err)
 		return

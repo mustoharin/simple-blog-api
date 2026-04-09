@@ -31,7 +31,8 @@ func (r *CommentRepository) List(ctx context.Context, postID string, page, limit
 	var total int
 	if err := r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM comments
-		WHERE post_id = $1 AND status = 'approved' AND deleted_at IS NULL`, postID,
+		WHERE post_id = $1 AND status = 'approved' AND deleted_at IS NULL
+		  AND EXISTS (SELECT 1 FROM posts WHERE id = $1 AND status = 'published' AND deleted_at IS NULL)`, postID,
 	).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("comment count: %w", err)
 	}
@@ -41,6 +42,7 @@ func (r *CommentRepository) List(ctx context.Context, postID string, page, limit
 		SELECT id, post_id, author_id, body, status, created_at
 		FROM comments
 		WHERE post_id = $1 AND status = 'approved' AND deleted_at IS NULL
+		  AND EXISTS (SELECT 1 FROM posts WHERE id = $1 AND status = 'published' AND deleted_at IS NULL)
 		ORDER BY created_at ASC LIMIT $2 OFFSET $3`,
 		postID, limit, offset)
 	if err != nil {

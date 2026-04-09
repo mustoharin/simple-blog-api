@@ -44,7 +44,7 @@ func SetupRouter(deps RouterDeps) *gin.Engine {
 	postRoutes := v1.Group("/posts")
 	{
 		postRoutes.GET("", deps.Post.ListPosts)
-		postRoutes.GET("/:slug", deps.Post.GetPost)
+		postRoutes.GET("/:id", deps.Post.GetPost)
 		postRoutes.POST("", middleware.JWT(deps.JWTSecret), middleware.RequirePermission("post:create"), deps.Post.CreatePost)
 		postRoutes.PUT("/:id", middleware.JWT(deps.JWTSecret), middleware.RequirePermission("post:edit"), deps.Post.UpdatePost)
 		postRoutes.PATCH("/:id/publish", middleware.JWT(deps.JWTSecret), middleware.RequirePermission("post:publish"), deps.Post.TogglePublish)

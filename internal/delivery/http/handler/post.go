@@ -63,7 +63,7 @@ func (h *PostHandler) ListPosts(c *gin.Context) {
 }
 
 func (h *PostHandler) GetPost(c *gin.Context) {
-	p, err := h.getBySlug.Execute(c.Request.Context(), c.Param("slug"), false)
+	p, err := h.getBySlug.Execute(c.Request.Context(), c.Param("id"), false)
 	if err != nil {
 		respondError(c, err)
 		return

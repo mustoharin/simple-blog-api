@@ -166,6 +166,9 @@ func main() {
 	auditHandler     := handler.NewAuditHandler(listAuditUC, getAuditUC)
 	dashboardHandler := handler.NewDashboardHandler(getDashboardUC)
 
+	// Run database migrations before starting jobs or serving traffic
+	runMigrations(cfg.DatabaseURL)
+
 	// Background jobs
 	jobs.RunRetentionPurge(pool, cfg.AuditLogRetentionDays, cfg.SoftDeleteRetentionDays)
 	jobs.RunInvitationExpiry(pool, auditRepo)
@@ -184,9 +187,6 @@ func main() {
 		Audit:          auditHandler,
 		Dashboard:      dashboardHandler,
 	})
-
-	// Run database migrations
-	runMigrations(cfg.DatabaseURL)
 
 	addr := ":" + cfg.Port
 	srv := &http.Server{

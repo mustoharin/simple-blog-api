@@ -28,19 +28,16 @@ RUN addgroup -S appgroup && \
 
 WORKDIR /app
 
-# Copy binary and migrations from builder
-COPY --from=builder /app/main .
-COPY --from=builder /app/migrations ./migrations
-
-# Transfer ownership to appuser
-RUN chown -R appuser:appgroup /app
+# Copy binary and migrations from builder (with ownership set at copy time)
+COPY --chown=appuser:appgroup --from=builder /app/main .
+COPY --chown=appuser:appgroup --from=builder /app/migrations ./migrations
 
 # Run as non-root
 USER appuser
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://localhost:8080/healthz || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:8080/healthz
 
 CMD ["./main"]

@@ -30,6 +30,8 @@ type Config struct {
 	FrontendURL             string
 	AuditLogRetentionDays   int
 	SoftDeleteRetentionDays int
+	SeedAdminEmail          string
+	SeedAdminPassword       string
 }
 
 func Load() *Config {
@@ -56,6 +58,8 @@ func Load() *Config {
 		FrontendURL:             getEnv("FRONTEND_URL", "http://localhost:3000"),
 		AuditLogRetentionDays:   getInt("AUDIT_LOG_RETENTION_DAYS", 365),
 		SoftDeleteRetentionDays: getInt("SOFT_DELETE_RETENTION_DAYS", 90),
+		SeedAdminEmail:          getEnv("SEED_ADMIN_EMAIL", ""),
+		SeedAdminPassword:       getEnv("SEED_ADMIN_PASSWORD", ""),
 	}
 }
 

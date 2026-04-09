@@ -28,7 +28,7 @@ func runPurge(pool *pgxpool.Pool, auditDays, softDays int) {
 	ctx := context.Background()
 
 	tag, err := pool.Exec(ctx,
-		`DELETE FROM audit_logs WHERE created_at < NOW() - ($1 || ' days')::INTERVAL`, auditDays)
+		`DELETE FROM audit_logs WHERE created_at < NOW() - make_interval(days => $1)`, auditDays)
 	if err != nil {
 		log.Printf("[retention] audit log purge error: %v", err)
 	} else {
@@ -36,7 +36,7 @@ func runPurge(pool *pgxpool.Pool, auditDays, softDays int) {
 	}
 
 	tag, err = pool.Exec(ctx,
-		`DELETE FROM posts WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - ($1 || ' days')::INTERVAL`, softDays)
+		`DELETE FROM posts WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - make_interval(days => $1)`, softDays)
 	if err != nil {
 		log.Printf("[retention] posts purge error: %v", err)
 	} else if tag.RowsAffected() > 0 {
@@ -44,7 +44,7 @@ func runPurge(pool *pgxpool.Pool, auditDays, softDays int) {
 	}
 
 	tag, err = pool.Exec(ctx,
-		`DELETE FROM comments WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - ($1 || ' days')::INTERVAL`, softDays)
+		`DELETE FROM comments WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - make_interval(days => $1)`, softDays)
 	if err != nil {
 		log.Printf("[retention] comments purge error: %v", err)
 	} else if tag.RowsAffected() > 0 {
@@ -52,7 +52,7 @@ func runPurge(pool *pgxpool.Pool, auditDays, softDays int) {
 	}
 
 	tag, err = pool.Exec(ctx,
-		`DELETE FROM users WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - ($1 || ' days')::INTERVAL`, softDays)
+		`DELETE FROM users WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - make_interval(days => $1)`, softDays)
 	if err != nil {
 		log.Printf("[retention] users purge error: %v", err)
 	} else if tag.RowsAffected() > 0 {

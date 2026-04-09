@@ -2,8 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	migrate "github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	"simple-blog-api/config"
 	deliveryhttp "simple-blog-api/internal/delivery/http"
@@ -176,9 +185,42 @@ func main() {
 		Dashboard:      dashboardHandler,
 	})
 
+	// Run database migrations
+	runMigrations(cfg.DatabaseURL)
+
 	addr := ":" + cfg.Port
-	log.Printf("simple-blog-api listening on %s (env=%s)", addr, cfg.Env)
-	if err := http.ListenAndServe(addr, router); err != nil {
-		log.Fatalf("server: %v", err)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: router,
 	}
+
+	go func() {
+		log.Printf("simple-blog-api listening on %s (env=%s)", addr, cfg.Env)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("server: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("shutting down...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("graceful shutdown: %v", err)
+	}
+	log.Println("server stopped")
+}
+
+func runMigrations(databaseURL string) {
+	m, err := migrate.New("file://migrations", databaseURL)
+	if err != nil {
+		log.Fatalf("migrations init: %v", err)
+	}
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		log.Fatalf("migrations up: %v", err)
+	}
+	log.Println("migrations applied")
 }

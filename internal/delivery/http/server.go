@@ -1,6 +1,8 @@
 package http
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 
 	"simple-blog-api/internal/delivery/http/handler"
@@ -99,6 +101,10 @@ func SetupRouter(deps RouterDeps) *gin.Engine {
 		middleware.RequirePermission("dashboard:read"),
 		deps.Dashboard.GetDashboard,
 	)
+
+	r.GET("/healthz", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	return r
 }

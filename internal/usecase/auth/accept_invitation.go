@@ -69,7 +69,10 @@ func (uc *AcceptInvitationUsecase) Execute(ctx context.Context, rawToken, newPas
 
 	user.PasswordHash = &pwHash
 	user.Status = domain.UserStatusActive
-	if err := uc.users.Update(ctx, user); err != nil {
+	if err := uc.users.UpdatePasswordHash(ctx, user.ID, pwHash); err != nil {
+		return err
+	}
+	if err := uc.users.UpdateStatus(ctx, user.ID, domain.UserStatusActive); err != nil {
 		return err
 	}
 

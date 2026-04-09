@@ -11,6 +11,7 @@ type UserRepository interface {
 	SoftDelete(ctx context.Context, id string) error
 	UpdateStatus(ctx context.Context, id string, status UserStatus) error
 	UpdateLastLogin(ctx context.Context, id string) error
+	UpdatePasswordHash(ctx context.Context, id, passwordHash string) error
 	AssignRole(ctx context.Context, userID, roleID string) error
 	RemoveRole(ctx context.Context, userID, roleID string) error
 	GetRoles(ctx context.Context, userID string) ([]Role, error)

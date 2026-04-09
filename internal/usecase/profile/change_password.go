@@ -55,7 +55,7 @@ func (uc *ChangePasswordUsecase) Execute(ctx context.Context, userID, currentPas
 	}
 
 	u.PasswordHash = &newHash
-	if err := uc.users.Update(ctx, u); err != nil {
+	if err := uc.users.UpdatePasswordHash(ctx, u.ID, newHash); err != nil {
 		return err
 	}
 

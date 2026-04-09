@@ -71,7 +71,7 @@ func (uc *ResetPasswordUsecase) Execute(ctx context.Context, rawToken, newPasswo
 	}
 
 	user.PasswordHash = &newHash
-	if err := uc.users.Update(ctx, user); err != nil {
+	if err := uc.users.UpdatePasswordHash(ctx, user.ID, newHash); err != nil {
 		return err
 	}
 

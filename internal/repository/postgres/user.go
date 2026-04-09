@@ -114,6 +114,19 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
+func (r *UserRepository) UpdatePasswordHash(ctx context.Context, id, passwordHash string) error {
+	tag, err := r.db.Exec(ctx,
+		`UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2 AND deleted_at IS NULL`,
+		passwordHash, id)
+	if err != nil {
+		return fmt.Errorf("user update password hash: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
 func (r *UserRepository) SoftDelete(ctx context.Context, id string) error {
 	tag, err := r.db.Exec(ctx,
 		`UPDATE users SET deleted_at=NOW() WHERE id=$1 AND deleted_at IS NULL`, id)

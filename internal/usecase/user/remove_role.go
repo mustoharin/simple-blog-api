@@ -18,6 +18,25 @@ func NewRemoveRoleUsecase(users domain.UserRepository, audit domain.AuditLogger)
 }
 
 func (uc *RemoveRoleUsecase) Execute(ctx context.Context, userID, roleID, actorID, actorEmail string) error {
+	// Guard: only superadmins may remove the superadmin role.
+	superadminRole, err := uc.users.GetRoleByName(ctx, "superadmin")
+	if err == nil && superadminRole.ID == roleID {
+		actorRoles, err := uc.users.GetRoles(ctx, actorID)
+		if err != nil {
+			return err
+		}
+		isSuperadmin := false
+		for _, r := range actorRoles {
+			if r.Name == "superadmin" {
+				isSuperadmin = true
+				break
+			}
+		}
+		if !isSuperadmin {
+			return domain.ErrForbidden
+		}
+	}
+
 	if err := uc.users.RemoveRole(ctx, userID, roleID); err != nil {
 		return err
 	}

@@ -48,6 +48,9 @@ func (r *TagRepository) List(ctx context.Context) ([]*domain.Tag, error) {
 		}
 		tags = append(tags, t)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("tag list scan: %w", err)
+	}
 	return tags, nil
 }
 

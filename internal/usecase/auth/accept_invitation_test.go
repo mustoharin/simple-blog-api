@@ -59,9 +59,8 @@ func TestAcceptInvitation_Success(t *testing.T) {
 	invRepo.On("MarkUsed", mock.Anything, inv.ID).Return(nil)
 	repo.On("GetByID", mock.Anything, "u1").Return(user, nil)
 	pwv.On("Validate", mock.Anything, "Str0ng&Pass#99").Return(nil)
-	repo.On("Update", mock.Anything, mock.MatchedBy(func(u *domain.User) bool {
-		return u.PasswordHash != nil && u.Status == domain.UserStatusActive
-	})).Return(nil)
+	repo.On("UpdatePasswordHash", mock.Anything, "u1", mock.AnythingOfType("string")).Return(nil)
+	repo.On("UpdateStatus", mock.Anything, "u1", domain.UserStatusActive).Return(nil)
 	audit.On("Log", mock.Anything, mock.Anything).Return(nil)
 
 	uc := auth.NewAcceptInvitationUsecase(repo, invRepo, pwv, audit)
@@ -89,4 +88,27 @@ func TestAcceptInvitation_TokenExpired(t *testing.T) {
 	uc := auth.NewAcceptInvitationUsecase(repo, invRepo, pwv, audit)
 	err := uc.Execute(context.Background(), rawToken, "Str0ng&Pass#99")
 	assert.ErrorIs(t, err, domain.ErrTokenExpired)
+}
+
+func TestAcceptInvitation_TokenUsed(t *testing.T) {
+	repo := new(mockUserRepo)
+	invRepo := new(mockInvitationTokenRepo)
+	pwv := new(mockPasswordValidator)
+	audit := new(mockAuditLogger)
+
+	rawToken := "raw-used-invite"
+	hash := makeTokenHash(rawToken)
+	usedAt := time.Now().Add(-time.Minute)
+	inv := &domain.InvitationToken{
+		ID:        uuid.NewString(),
+		UserID:    "u1",
+		TokenHash: hash,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+		UsedAt:    &usedAt,
+	}
+	invRepo.On("GetByHash", mock.Anything, hash).Return(inv, nil)
+
+	uc := auth.NewAcceptInvitationUsecase(repo, invRepo, pwv, audit)
+	err := uc.Execute(context.Background(), rawToken, "Str0ng&Pass#99")
+	assert.ErrorIs(t, err, domain.ErrTokenUsed)
 }

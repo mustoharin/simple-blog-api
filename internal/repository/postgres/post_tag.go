@@ -58,5 +58,8 @@ func (r *PostTagRepository) GetTagsForPost(ctx context.Context, postID string) (
 		}
 		tags = append(tags, t)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("get tags for post scan: %w", err)
+	}
 	return tags, nil
 }

@@ -114,7 +114,7 @@ func TestChangePassword_Success(t *testing.T) {
 
 	repo.On("GetByID", mock.Anything, "u1").Return(u, nil)
 	pwv.On("Validate", mock.Anything, "NewStr0ng!Pass#99").Return(nil)
-	repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+	repo.On("UpdatePasswordHash", mock.Anything, "u1", mock.AnythingOfType("string")).Return(nil)
 	rtRepo.On("RevokeAllForUser", mock.Anything, "u1").Return(nil)
 	audit.On("Log", mock.Anything, mock.Anything).Return(nil)
 

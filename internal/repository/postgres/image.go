@@ -77,5 +77,8 @@ func (r *ImageRepository) List(ctx context.Context, page, limit int) ([]*domain.
 		}
 		imgs = append(imgs, img)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("image list scan: %w", err)
+	}
 	return imgs, total, nil
 }

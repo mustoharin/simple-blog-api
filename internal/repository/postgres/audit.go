@@ -100,6 +100,9 @@ func (r *AuditLogRepository) List(ctx context.Context, f domain.AuditFilter) ([]
 		}
 		logs = append(logs, l)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("audit log scan: %w", err)
+	}
 	return logs, total, nil
 }
 

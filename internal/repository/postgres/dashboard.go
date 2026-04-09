@@ -48,6 +48,9 @@ func (r *DashboardRepository) GetTopPostsByViews(ctx context.Context, days, limi
 		}
 		items = append(items, item)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("top posts by views scan: %w", err)
+	}
 	return items, nil
 }
 
@@ -70,6 +73,9 @@ func (r *DashboardRepository) GetTopPostsByComments(ctx context.Context, days, l
 		}
 		items = append(items, item)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("top posts by comments scan: %w", err)
+	}
 	return items, nil
 }
 
@@ -88,6 +94,9 @@ func (r *DashboardRepository) GetRecentActivity(ctx context.Context, limit int) 
 			return nil, err
 		}
 		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("recent activity scan: %w", err)
 	}
 	return items, nil
 }
@@ -110,6 +119,9 @@ func (r *DashboardRepository) GetActiveUsers(ctx context.Context, minutesWindow 
 			return nil, err
 		}
 		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("active users scan: %w", err)
 	}
 	return users, nil
 }

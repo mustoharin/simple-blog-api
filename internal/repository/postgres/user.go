@@ -97,6 +97,9 @@ func (r *UserRepository) List(ctx context.Context, page, limit int) ([]*domain.U
 		}
 		users = append(users, u)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("user list scan: %w", err)
+	}
 	return users, total, nil
 }
 
@@ -203,6 +206,9 @@ func (r *UserRepository) GetRoles(ctx context.Context, userID string) ([]domain.
 		}
 		roles = append(roles, role)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("get roles scan: %w", err)
+	}
 	return roles, nil
 }
 
@@ -224,6 +230,9 @@ func (r *UserRepository) GetPermissions(ctx context.Context, userID string) ([]s
 			return nil, fmt.Errorf("scan perm: %w", err)
 		}
 		perms = append(perms, perm)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("get permissions scan: %w", err)
 	}
 	return perms, nil
 }

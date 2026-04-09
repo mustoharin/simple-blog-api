@@ -87,7 +87,7 @@ func TestResetPassword_Success(t *testing.T) {
 	prtRepo.On("MarkUsed", mock.Anything, prt.ID).Return(nil)
 	repo.On("GetByID", mock.Anything, "u1").Return(user, nil)
 	pwv.On("Validate", mock.Anything, "NewStr0ng!Pass#77").Return(nil)
-	repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+	repo.On("UpdatePasswordHash", mock.Anything, "u1", mock.AnythingOfType("string")).Return(nil)
 	rtRepo.On("RevokeAllForUser", mock.Anything, "u1").Return(nil)
 	audit.On("Log", mock.Anything, mock.Anything).Return(nil)
 
@@ -116,4 +116,28 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	uc := auth.NewResetPasswordUsecase(repo, prtRepo, rtRepo, pwv, audit)
 	err := uc.Execute(context.Background(), rawToken, "NewStr0ng!Pass#77")
 	assert.ErrorIs(t, err, domain.ErrTokenExpired)
+}
+
+func TestResetPassword_TokenAlreadyUsed(t *testing.T) {
+	repo := new(mockUserRepo)
+	prtRepo := new(mockPRTRepo)
+	rtRepo := new(mockRefreshTokenRepo)
+	pwv := new(mockPasswordValidator)
+	audit := new(mockAuditLogger)
+
+	rawToken := "raw-used-reset"
+	hash := makeTokenHash(rawToken)
+	usedAt := time.Now().Add(-time.Minute)
+	prt := &domain.PasswordResetToken{
+		ID:        uuid.NewString(),
+		UserID:    "u1",
+		TokenHash: hash,
+		ExpiresAt: time.Now().Add(time.Hour),
+		UsedAt:    &usedAt,
+	}
+	prtRepo.On("GetByHash", mock.Anything, hash).Return(prt, nil)
+
+	uc := auth.NewResetPasswordUsecase(repo, prtRepo, rtRepo, pwv, audit)
+	err := uc.Execute(context.Background(), rawToken, "NewStr0ng!Pass#77")
+	assert.ErrorIs(t, err, domain.ErrTokenUsed)
 }

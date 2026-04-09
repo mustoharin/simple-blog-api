@@ -137,6 +137,9 @@ func (r *PostRepository) List(ctx context.Context, filter domain.PostFilter, pub
 		}
 		posts = append(posts, p)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("post list scan: %w", err)
+	}
 	return posts, total, nil
 }
 
@@ -177,17 +180,16 @@ func (r *PostRepository) IncrementViewCount(ctx context.Context, id string) erro
 }
 
 func (r *PostRepository) SetPublished(ctx context.Context, id string, published bool) error {
-	var err error
-	var tag interface{ RowsAffected() int64 }
+	var query string
+	var args []any
 	if published {
-		tag, err = r.db.Exec(ctx,
-			`UPDATE posts SET status='published', published_at=$2, updated_at=NOW() WHERE id=$1 AND deleted_at IS NULL`,
-			id, time.Now())
+		query = `UPDATE posts SET status='published', published_at=$2, updated_at=NOW() WHERE id=$1 AND deleted_at IS NULL`
+		args = []any{id, time.Now()}
 	} else {
-		tag, err = r.db.Exec(ctx,
-			`UPDATE posts SET status='draft', published_at=NULL, updated_at=NOW() WHERE id=$1 AND deleted_at IS NULL`,
-			id)
+		query = `UPDATE posts SET status='draft', published_at=NULL, updated_at=NOW() WHERE id=$1 AND deleted_at IS NULL`
+		args = []any{id}
 	}
+	tag, err := r.db.Exec(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("post set published: %w", err)
 	}

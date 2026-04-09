@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	_ "simple-blog-api/internal/domain"
 	"simple-blog-api/internal/delivery/http/middleware"
 	commentuc "simple-blog-api/internal/usecase/comment"
 )
@@ -67,7 +68,7 @@ type createCommentRequest struct {
 // @Security     BearerAuth
 // @Param        id    path  string               true  "Post ID"
 // @Param        body  body  createCommentRequest  true  "Comment body"
-// @Success      201  {object}  map[string]interface{}
+// @Success      201  {object}  domain.Comment
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      404  {object}  errorResponse

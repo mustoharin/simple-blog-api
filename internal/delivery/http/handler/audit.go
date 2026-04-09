@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	_ "simple-blog-api/internal/domain"
 	audituc "simple-blog-api/internal/usecase/audit"
 )
 
@@ -82,7 +83,7 @@ func (h *AuditHandler) ListAuditLogs(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id  path  string  true  "Audit log ID"
-// @Success      200  {object}  map[string]interface{}
+// @Success      200  {object}  domain.AuditLog
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse
 // @Failure      404  {object}  errorResponse

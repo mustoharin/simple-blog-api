@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	_ "simple-blog-api/internal/domain"
 	dashboarduc "simple-blog-api/internal/usecase/dashboard"
 )
 
@@ -24,7 +25,7 @@ func NewDashboardHandler(get *dashboarduc.GetDashboardUsecase) *DashboardHandler
 // @Produce      json
 // @Security     BearerAuth
 // @Param        range  query  int  false  "Date range in days"  default(30)
-// @Success      200  {object}  map[string]interface{}
+// @Success      200  {object}  domain.DashboardResponse
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse

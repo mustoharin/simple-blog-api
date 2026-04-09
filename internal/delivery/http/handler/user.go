@@ -6,6 +6,7 @@ import (
 
     "github.com/gin-gonic/gin"
 
+    _ "simple-blog-api/internal/domain"
     "simple-blog-api/internal/delivery/http/middleware"
     "simple-blog-api/internal/usecase/user"
 )
@@ -82,7 +83,7 @@ type createUserRequest struct {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body  createUserRequest  true  "User data"
-// @Success      201  {object}  map[string]interface{}
+// @Success      201  {object}  domain.User
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse
@@ -125,7 +126,7 @@ type updateUserRequest struct {
 // @Security     BearerAuth
 // @Param        id    path  string            true  "User ID"
 // @Param        body  body  updateUserRequest  true  "User data"
-// @Success      200  {object}  map[string]interface{}
+// @Success      200  {object}  domain.User
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse

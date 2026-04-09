@@ -133,8 +133,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.AuditLog"
                         }
                     },
                     "401": {
@@ -728,8 +727,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.DashboardResponse"
                         }
                     },
                     "400": {
@@ -790,8 +788,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.Image"
                         }
                     },
                     "400": {
@@ -913,8 +910,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.User"
                         }
                     },
                     "401": {
@@ -963,8 +959,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.User"
                         }
                     },
                     "400": {
@@ -1152,8 +1147,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.Post"
                         }
                     },
                     "400": {
@@ -1206,8 +1200,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.Post"
                         }
                     },
                     "404": {
@@ -1263,8 +1256,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.Post"
                         }
                     },
                     "400": {
@@ -1453,8 +1445,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.Comment"
                         }
                     },
                     "400": {
@@ -1525,7 +1516,9 @@
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
                         }
                     },
                     "400": {
@@ -1808,8 +1801,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.User"
                         }
                     },
                     "400": {
@@ -1885,8 +1877,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/domain.User"
                         }
                     },
                     "400": {
@@ -2197,6 +2188,391 @@
         }
     },
     "definitions": {
+        "domain.ActiveUserItem": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_login_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ActiveUsers": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ActiveUserItem"
+                    }
+                }
+            }
+        },
+        "domain.AuditLog": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actor_email": {
+                    "type": "string"
+                },
+                "actor_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "resource_id": {
+                    "type": "string"
+                },
+                "resource_type": {
+                    "type": "string"
+                },
+                "user_agent": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Comment": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/domain.User"
+                },
+                "author_id": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "post_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.CommentStatus"
+                }
+            }
+        },
+        "domain.CommentStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "approved",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "CommentStatusPending",
+                "CommentStatusApproved",
+                "CommentStatusRejected"
+            ]
+        },
+        "domain.DashboardOverview": {
+            "type": "object",
+            "properties": {
+                "total_comments": {
+                    "type": "integer"
+                },
+                "total_images": {
+                    "type": "integer"
+                },
+                "total_posts": {
+                    "type": "integer"
+                },
+                "total_users": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.DashboardResponse": {
+            "type": "object",
+            "properties": {
+                "active_users": {
+                    "$ref": "#/definitions/domain.ActiveUsers"
+                },
+                "overview": {
+                    "$ref": "#/definitions/domain.DashboardOverview"
+                },
+                "post_analytics": {
+                    "$ref": "#/definitions/domain.PostAnalytics"
+                },
+                "recent_activity": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.RecentActivityItem"
+                    }
+                }
+            }
+        },
+        "domain.Image": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "s3_key": {
+                    "type": "string"
+                },
+                "uploaded_by": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Permission": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Post": {
+            "type": "object",
+            "properties": {
+                "author_id": {
+                    "type": "string"
+                },
+                "comment_count": {
+                    "type": "integer"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "cover_image_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "excerpt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.PostStatus"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Tag"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "view_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.PostAnalyticItem": {
+            "type": "object",
+            "properties": {
+                "comment_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "view_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.PostAnalytics": {
+            "type": "object",
+            "properties": {
+                "range_days": {
+                    "type": "integer"
+                },
+                "top_by_comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.PostAnalyticItem"
+                    }
+                },
+                "top_by_views": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.PostAnalyticItem"
+                    }
+                }
+            }
+        },
+        "domain.PostStatus": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "published"
+            ],
+            "x-enum-varnames": [
+                "PostStatusDraft",
+                "PostStatusPublished"
+            ]
+        },
+        "domain.RecentActivityItem": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actor_email": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Role": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Permission"
+                    }
+                }
+            }
+        },
+        "domain.Tag": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.User": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_login_at": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Role"
+                    }
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.UserStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UserStatus": {
+            "type": "string",
+            "enum": [
+                "pending_invitation",
+                "active",
+                "expired_invitation"
+            ],
+            "x-enum-varnames": [
+                "UserStatusPendingInvitation",
+                "UserStatusActive",
+                "UserStatusExpiredInvitation"
+            ]
+        },
         "handler.acceptInvitationRequest": {
             "type": "object",
             "required": [

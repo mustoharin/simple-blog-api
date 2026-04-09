@@ -82,7 +82,7 @@ func (h *PostHandler) ListPosts(c *gin.Context) {
 // @Tags         posts
 // @Produce      json
 // @Param        id  path  string  true  "Post slug or UUID"
-// @Success      200  {object}  map[string]interface{}
+// @Success      200  {object}  domain.Post
 // @Failure      404  {object}  errorResponse
 // @Failure      500  {object}  errorResponse
 // @Router       /posts/{id} [get]
@@ -112,7 +112,7 @@ type createPostRequest struct {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        body  body  createPostRequest  true  "Post data"
-// @Success      201  {object}  map[string]interface{}
+// @Success      201  {object}  domain.Post
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse
@@ -164,7 +164,7 @@ type updatePostRequest struct {
 // @Security     BearerAuth
 // @Param        id    path  string           true  "Post ID"
 // @Param        body  body  updatePostRequest  true  "Post data"
-// @Success      200  {object}  map[string]interface{}
+// @Success      200  {object}  domain.Post
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse
@@ -213,7 +213,7 @@ type togglePublishRequest struct {
 // @Security     BearerAuth
 // @Param        id    path  string               true  "Post ID"
 // @Param        body  body  togglePublishRequest  true  "Publish flag"
-// @Success      200  {object}  map[string]interface{}
+// @Success      200  {object}  map[string]bool
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse

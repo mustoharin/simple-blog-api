@@ -1,5 +1,260 @@
 basePath: /api/v1
 definitions:
+  domain.ActiveUserItem:
+    properties:
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      last_login_at:
+        type: string
+    type: object
+  domain.ActiveUsers:
+    properties:
+      count:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/domain.ActiveUserItem'
+        type: array
+    type: object
+  domain.AuditLog:
+    properties:
+      action:
+        type: string
+      actor_email:
+        type: string
+      actor_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      ip_address:
+        type: string
+      resource_id:
+        type: string
+      resource_type:
+        type: string
+      user_agent:
+        type: string
+    type: object
+  domain.Comment:
+    properties:
+      author:
+        $ref: '#/definitions/domain.User'
+      author_id:
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      post_id:
+        type: string
+      status:
+        $ref: '#/definitions/domain.CommentStatus'
+    type: object
+  domain.CommentStatus:
+    enum:
+    - pending
+    - approved
+    - rejected
+    type: string
+    x-enum-varnames:
+    - CommentStatusPending
+    - CommentStatusApproved
+    - CommentStatusRejected
+  domain.DashboardOverview:
+    properties:
+      total_comments:
+        type: integer
+      total_images:
+        type: integer
+      total_posts:
+        type: integer
+      total_users:
+        type: integer
+    type: object
+  domain.DashboardResponse:
+    properties:
+      active_users:
+        $ref: '#/definitions/domain.ActiveUsers'
+      overview:
+        $ref: '#/definitions/domain.DashboardOverview'
+      post_analytics:
+        $ref: '#/definitions/domain.PostAnalytics'
+      recent_activity:
+        items:
+          $ref: '#/definitions/domain.RecentActivityItem'
+        type: array
+    type: object
+  domain.Image:
+    properties:
+      created_at:
+        type: string
+      filename:
+        type: string
+      id:
+        type: string
+      s3_key:
+        type: string
+      uploaded_by:
+        type: string
+      url:
+        type: string
+    type: object
+  domain.Permission:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.Post:
+    properties:
+      author_id:
+        type: string
+      comment_count:
+        type: integer
+      content:
+        type: string
+      cover_image_url:
+        type: string
+      created_at:
+        type: string
+      excerpt:
+        type: string
+      id:
+        type: string
+      published_at:
+        type: string
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/domain.PostStatus'
+      tags:
+        items:
+          $ref: '#/definitions/domain.Tag'
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  domain.PostAnalyticItem:
+    properties:
+      comment_count:
+        type: integer
+      id:
+        type: string
+      published_at:
+        type: string
+      slug:
+        type: string
+      title:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  domain.PostAnalytics:
+    properties:
+      range_days:
+        type: integer
+      top_by_comments:
+        items:
+          $ref: '#/definitions/domain.PostAnalyticItem'
+        type: array
+      top_by_views:
+        items:
+          $ref: '#/definitions/domain.PostAnalyticItem'
+        type: array
+    type: object
+  domain.PostStatus:
+    enum:
+    - draft
+    - published
+    type: string
+    x-enum-varnames:
+    - PostStatusDraft
+    - PostStatusPublished
+  domain.RecentActivityItem:
+    properties:
+      action:
+        type: string
+      actor_email:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+    type: object
+  domain.Role:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/domain.Permission'
+        type: array
+    type: object
+  domain.Tag:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  domain.User:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      created_at:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      last_login_at:
+        type: string
+      permissions:
+        items:
+          type: string
+        type: array
+      roles:
+        items:
+          $ref: '#/definitions/domain.Role'
+        type: array
+      status:
+        $ref: '#/definitions/domain.UserStatus'
+      updated_at:
+        type: string
+    type: object
+  domain.UserStatus:
+    enum:
+    - pending_invitation
+    - active
+    - expired_invitation
+    type: string
+    x-enum-varnames:
+    - UserStatusPendingInvitation
+    - UserStatusActive
+    - UserStatusExpiredInvitation
   handler.acceptInvitationRequest:
     properties:
       new_password:
@@ -260,8 +515,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.AuditLog'
         "401":
           description: Unauthorized
           schema:
@@ -646,8 +900,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.DashboardResponse'
         "400":
           description: Bad Request
           schema:
@@ -686,8 +939,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.Image'
         "400":
           description: Bad Request
           schema:
@@ -765,8 +1017,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.User'
         "401":
           description: Unauthorized
           schema:
@@ -797,8 +1048,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.User'
         "400":
           description: Bad Request
           schema:
@@ -920,8 +1170,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.Post'
         "400":
           description: Bad Request
           schema:
@@ -996,8 +1245,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.Post'
         "404":
           description: Not Found
           schema:
@@ -1031,8 +1279,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.Post'
         "400":
           description: Bad Request
           schema:
@@ -1118,8 +1365,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.Comment'
         "400":
           description: Bad Request
           schema:
@@ -1164,7 +1410,8 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: boolean
             type: object
         "400":
           description: Bad Request
@@ -1348,8 +1595,7 @@ paths:
         "201":
           description: Created
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.User'
         "400":
           description: Bad Request
           schema:
@@ -1436,8 +1682,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.User'
         "400":
           description: Bad Request
           schema:

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	_ "simple-blog-api/internal/domain"
 	"simple-blog-api/internal/delivery/http/middleware"
 	imageuc "simple-blog-api/internal/usecase/image"
 )
@@ -27,7 +28,7 @@ func NewImageHandler(upload *imageuc.UploadImageUsecase, deleteUC *imageuc.Delet
 // @Produce      json
 // @Security     BearerAuth
 // @Param        file  formData  file  true  "Image file"
-// @Success      201  {object}  map[string]interface{}
+// @Success      201  {object}  domain.Image
 // @Failure      400  {object}  errorResponse
 // @Failure      401  {object}  errorResponse
 // @Failure      403  {object}  errorResponse

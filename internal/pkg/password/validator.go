@@ -63,7 +63,7 @@ func (v *Validator) Validate(ctx context.Context, plain string) error {
 		}
 	}
 
-	if v.hibp.isPwned(plain) {
+	if v.hibp.isPwned(ctx, plain) {
 		return domain.ErrPasswordPwned
 	}
 

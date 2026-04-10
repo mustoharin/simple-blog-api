@@ -2,6 +2,7 @@ package password
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha1" // #nosec G401 - SHA-1 required by HIBP k-anonymity API
 	"fmt"
 	"io"
@@ -35,14 +36,18 @@ func newHIBPChecker(cfg *HIBPConfig) *hibpChecker {
 
 // isPwned checks if the given plain password appears in HIBP using k-anonymity.
 // Returns false (fail-open) on any network or parsing error.
-func (h *hibpChecker) isPwned(plain string) bool {
+func (h *hibpChecker) isPwned(ctx context.Context, plain string) bool {
 	// #nosec G401 - SHA-1 required by the HIBP k-anonymity API
 	sum := sha1.Sum([]byte(plain))
 	hash := strings.ToUpper(fmt.Sprintf("%x", sum))
 	prefix := hash[:5]
 	suffix := hash[5:]
 
-	resp, err := h.client.Get(h.baseURL + prefix) // #nosec G107
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.baseURL+prefix, nil) // #nosec G107
+	if err != nil {
+		return false // fail-open
+	}
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return false // fail-open
 	}

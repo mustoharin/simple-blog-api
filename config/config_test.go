@@ -57,6 +57,14 @@ func TestLoad_DurationEnvOverride(t *testing.T) {
 	assert.Equal(t, 720*time.Hour, cfg.JWTRefreshExpiry)
 }
 
+func TestLoad_CaptchaSiteKeyEnvOverride(t *testing.T) {
+	os.Setenv("CAPTCHA_SITE_KEY", "my-public-site-key")
+	defer os.Unsetenv("CAPTCHA_SITE_KEY")
+
+	cfg := config.Load()
+	assert.Equal(t, "my-public-site-key", cfg.CaptchaSiteKey)
+}
+
 func TestLoad_SliceEnvOverride(t *testing.T) {
 	os.Setenv("ALLOWED_ORIGINS", "http://localhost:3000,https://example.com")
 	defer os.Unsetenv("ALLOWED_ORIGINS")

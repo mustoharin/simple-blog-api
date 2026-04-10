@@ -112,6 +112,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("init captcha: %v", err)
 	}
+	if cfg.CaptchaSecret != "" && cfg.CaptchaSiteKey == "" {
+		log.Println("WARNING: CAPTCHA_SECRET is set but CAPTCHA_SITE_KEY is empty — frontend will receive enabled:true with no site key")
+	}
 
 	// Auth usecases
 	registerUC  := authuc.NewRegisterUsecase(userRepo, pwValidator, auditRepo)

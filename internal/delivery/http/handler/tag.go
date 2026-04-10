@@ -65,9 +65,9 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
 		return
 	}
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
-	t, err := h.create.Execute(c.Request.Context(), req.Name, actorID.(string), actorEmail.(string))
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
+	t, err := h.create.Execute(c.Request.Context(), req.Name, actorID, actorEmail)
 	if err != nil {
 		respondError(c, err)
 		return
@@ -89,10 +89,10 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 // @Failure      500  {object}  errorResponse
 // @Router       /tags/{id} [delete]
 func (h *TagHandler) DeleteTag(c *gin.Context) {
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
 	if err := h.delete.Execute(c.Request.Context(),
-		c.Param("id"), actorID.(string), actorEmail.(string)); err != nil {
+		c.Param("id"), actorID, actorEmail); err != nil {
 		respondError(c, err)
 		return
 	}

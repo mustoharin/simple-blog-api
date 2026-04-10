@@ -54,15 +54,15 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 	// Detect MIME type from file magic bytes — do not trust client-supplied Content-Type
 	contentType := mimetype.Detect(data).String()
 
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
 
 	img, err := h.upload.Execute(c.Request.Context(), imageuc.UploadInput{
 		Filename:      header.Filename,
 		ContentType:   contentType,
 		Data:          data,
-		UploaderID:    actorID.(string),
-		UploaderEmail: actorEmail.(string),
+		UploaderID:    actorID,
+		UploaderEmail: actorEmail,
 	})
 	if err != nil {
 		respondError(c, err)
@@ -85,10 +85,10 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 // @Failure      500  {object}  errorResponse
 // @Router       /images/{id} [delete]
 func (h *ImageHandler) DeleteImage(c *gin.Context) {
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
 	if err := h.delete.Execute(c.Request.Context(),
-		c.Param("id"), actorID.(string), actorEmail.(string)); err != nil {
+		c.Param("id"), actorID, actorEmail); err != nil {
 		respondError(c, err)
 		return
 	}

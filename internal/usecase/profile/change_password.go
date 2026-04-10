@@ -59,7 +59,9 @@ func (uc *ChangePasswordUsecase) Execute(ctx context.Context, userID, currentPas
 		return err
 	}
 
-	_ = uc.refreshTokens.RevokeAllForUser(ctx, userID)
+	if err := uc.refreshTokens.RevokeAllForUser(ctx, userID); err != nil {
+		return err
+	}
 
 	_ = uc.audit.Log(ctx, &domain.AuditLog{
 		ID:           uuid.NewString(),

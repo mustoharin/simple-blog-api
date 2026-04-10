@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/google/uuid"
 
@@ -35,7 +36,14 @@ func (uc *UpdateUserUsecase) Execute(ctx context.Context, in UpdateUserInput) (*
 
 	u.DisplayName = sanitize.SanitizeStrict(sanitize.Trim(in.DisplayName))
 	u.Bio = sanitize.SanitizeStrict(sanitize.Trim(in.Bio))
-	u.AvatarURL = sanitize.Trim(in.AvatarURL)
+	trimmedURL := sanitize.Trim(in.AvatarURL)
+	if trimmedURL != "" {
+		parsed, err := url.Parse(trimmedURL)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+			return nil, domain.ErrInvalidInput
+		}
+	}
+	u.AvatarURL = trimmedURL
 
 	if err := uc.users.Update(ctx, u); err != nil {
 		return nil, err

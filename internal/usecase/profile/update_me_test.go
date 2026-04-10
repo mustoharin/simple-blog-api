@@ -52,3 +52,41 @@ func TestUpdateMe_NotFound(t *testing.T) {
 	assert.True(t, errors.Is(err, domain.ErrNotFound))
 	repo.AssertExpectations(t)
 }
+
+func TestUpdateMe_JavascriptAvatarURL_ReturnsError(t *testing.T) {
+	repo := new(mockUserRepo)
+	audit := new(mockAuditLogger)
+
+	u := &domain.User{ID: "u1", Email: "alice@example.com"}
+	repo.On("GetByID", mock.Anything, "u1").Return(u, nil)
+
+	uc := profile.NewUpdateMeUsecase(repo, audit)
+	result, err := uc.Execute(context.Background(), profile.UpdateMeInput{
+		UserID:    "u1",
+		AvatarURL: "javascript:alert(document.cookie)",
+	})
+
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, domain.ErrInvalidInput)
+}
+
+func TestUpdateMe_EmptyAvatarURL_Allowed(t *testing.T) {
+	repo := new(mockUserRepo)
+	audit := new(mockAuditLogger)
+
+	u := &domain.User{ID: "u1", Email: "alice@example.com"}
+	repo.On("GetByID", mock.Anything, "u1").Return(u, nil)
+	repo.On("Update", mock.Anything, mock.Anything).Return(nil)
+	audit.On("Log", mock.Anything, mock.Anything).Return(nil)
+
+	uc := profile.NewUpdateMeUsecase(repo, audit)
+	result, err := uc.Execute(context.Background(), profile.UpdateMeInput{
+		UserID:    "u1",
+		AvatarURL: "", // clearing avatar is allowed
+	})
+
+	time.Sleep(50 * time.Millisecond) // wait for async audit log
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "", result.AvatarURL)
+}

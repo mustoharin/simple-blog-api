@@ -2,6 +2,7 @@ package profile_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"simple-blog-api/internal/domain"
@@ -138,4 +139,24 @@ func TestChangePassword_WrongCurrentPassword(t *testing.T) {
 	uc := profile.NewChangePasswordUsecase(repo, rtRepo, pwv, audit)
 	err := uc.Execute(context.Background(), "u1", "WrongPassword!", "NewStr0ng!Pass#99")
 	assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
+}
+
+func TestChangePassword_RevocationFails_ReturnsError(t *testing.T) {
+	repo := new(mockUserRepo)
+	rtRepo := new(mockRefreshTokenRepo)
+	pwv := new(mockPasswordValidator)
+	audit := new(mockAuditLogger)
+
+	currentHash, _ := password.Hash("OldStr0ng!Pass")
+	u := &domain.User{ID: "u1", Email: "alice@example.com", PasswordHash: &currentHash}
+
+	repo.On("GetByID", mock.Anything, "u1").Return(u, nil)
+	pwv.On("Validate", mock.Anything, "NewStr0ng!Pass#99").Return(nil)
+	repo.On("UpdatePasswordHash", mock.Anything, "u1", mock.AnythingOfType("string")).Return(nil)
+	rtRepo.On("RevokeAllForUser", mock.Anything, "u1").Return(errors.New("db error"))
+
+	uc := profile.NewChangePasswordUsecase(repo, rtRepo, pwv, audit)
+	err := uc.Execute(context.Background(), "u1", "OldStr0ng!Pass", "NewStr0ng!Pass#99")
+	assert.Error(t, err)
+	rtRepo.AssertExpectations(t)
 }

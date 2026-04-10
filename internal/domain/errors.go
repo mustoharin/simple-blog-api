@@ -20,4 +20,5 @@ var (
 	ErrPasswordTooWeak      = errors.New("password does not meet complexity requirements")
 	ErrPasswordPwned        = errors.New("password has been found in a data breach; choose a different one")
 	ErrTagNameAlreadyExists = errors.New("tag name already exists")
+	ErrInvalidInput         = errors.New("invalid input")
 )

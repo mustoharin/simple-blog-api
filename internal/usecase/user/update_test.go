@@ -48,3 +48,22 @@ func TestUpdateUser_NotFound(t *testing.T) {
 	assert.Nil(t, result)
 	assert.ErrorIs(t, err, domain.ErrNotFound)
 }
+
+func TestUpdateUser_JavascriptAvatarURL_ReturnsError(t *testing.T) {
+	repo := new(mockUserRepo)
+	audit := new(mockAuditLogger)
+
+	u := &domain.User{ID: "u1", Email: "alice@example.com"}
+	repo.On("GetByID", mock.Anything, "u1").Return(u, nil)
+
+	uc := user.NewUpdateUserUsecase(repo, audit)
+	result, err := uc.Execute(context.Background(), user.UpdateUserInput{
+		ID:         "u1",
+		AvatarURL:  "javascript:alert(1)",
+		ActorID:    "admin1",
+		ActorEmail: "admin@example.com",
+	})
+
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, domain.ErrInvalidInput)
+}

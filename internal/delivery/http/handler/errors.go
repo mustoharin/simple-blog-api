@@ -44,6 +44,8 @@ func respondError(c *gin.Context, err error) {
 		c.JSON(http.StatusConflict, errorResponse{"User is already active", "USER_ALREADY_ACTIVE"})
 	case errors.Is(err, domain.ErrInvalidRange):
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "INVALID_RANGE"})
+	case errors.Is(err, domain.ErrInvalidInput):
+		c.JSON(http.StatusUnprocessableEntity, errorResponse{err.Error(), "INVALID_INPUT"})
 	case errors.Is(err, domain.ErrInvalidMimeType):
 		c.JSON(http.StatusUnprocessableEntity, errorResponse{err.Error(), "INVALID_MIME_TYPE"})
 	case errors.Is(err, domain.ErrFileTooLarge):

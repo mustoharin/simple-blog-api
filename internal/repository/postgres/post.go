@@ -111,7 +111,7 @@ func (r *PostRepository) List(ctx context.Context, filter domain.PostFilter, pub
 	} else if filter.Sort == "comments" {
 		orderBy = "p.comment_count DESC"
 	} else if filter.Sort == "relevance" && queryArgIdx > 0 {
-		orderBy = fmt.Sprintf("ts_rank(p.search_vector, plainto_tsquery('english', $%d)) DESC", queryArgIdx)
+		orderBy = fmt.Sprintf("ts_rank(p.search_vector, plainto_tsquery('english', $%d)) DESC, p.created_at DESC", queryArgIdx)
 	}
 
 	page := filter.Page

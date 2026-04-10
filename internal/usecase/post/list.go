@@ -32,7 +32,7 @@ func (uc *ListPostsUsecase) Execute(ctx context.Context, filter domain.PostFilte
 	}
 
 	if filter.Sort == "relevance" && filter.Query == "" {
-		return ListPostsOutput{}, domain.ErrInvalidInput
+		return ListPostsOutput{}, fmt.Errorf("sort=relevance requires a search query (?q): %w", domain.ErrInvalidInput)
 	}
 
 	posts, total, err := uc.posts.List(ctx, filter, publicOnly)

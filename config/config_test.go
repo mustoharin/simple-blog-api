@@ -22,6 +22,7 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, "hcaptcha", cfg.CaptchaProvider)
 	assert.Equal(t, "http://localhost:3000", cfg.FrontendURL)
 	assert.Equal(t, "us-east-1", cfg.S3Region)
+	assert.Equal(t, "", cfg.CaptchaSiteKey)
 }
 
 func TestLoad_EnvOverride(t *testing.T) {

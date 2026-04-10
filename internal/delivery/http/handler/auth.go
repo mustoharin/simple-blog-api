@@ -180,10 +180,10 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
 		return
 	}
-	userID, _ := c.Get(middleware.ContextKeyUserID)
-	email, _ := c.Get(middleware.ContextKeyEmail)
+	userID := c.GetString(middleware.ContextKeyUserID)
+	email := c.GetString(middleware.ContextKeyEmail)
 	_ = h.logout.Execute(c.Request.Context(), req.RefreshToken,
-		userID.(string), email.(string))
+		userID, email)
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
 

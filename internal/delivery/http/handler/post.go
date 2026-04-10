@@ -146,8 +146,8 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
 		return
 	}
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
 	if req.TagIDs == nil {
 		req.TagIDs = []string{}
 	}
@@ -157,8 +157,8 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		Content:       req.Content,
 		Excerpt:       req.Excerpt,
 		CoverImageURL: req.CoverImageURL,
-		AuthorID:      actorID.(string),
-		AuthorEmail:   actorEmail.(string),
+		AuthorID:      actorID,
+		AuthorEmail:   actorEmail,
 		TagIDs:        req.TagIDs,
 	})
 	if err != nil {
@@ -199,8 +199,8 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
 		return
 	}
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
 	if req.TagIDs == nil {
 		req.TagIDs = []string{}
 	}
@@ -212,8 +212,8 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		Excerpt:       req.Excerpt,
 		CoverImageURL: req.CoverImageURL,
 		TagIDs:        req.TagIDs,
-		ActorID:       actorID.(string),
-		ActorEmail:    actorEmail.(string),
+		ActorID:       actorID,
+		ActorEmail:    actorEmail,
 	})
 	if err != nil {
 		respondError(c, err)
@@ -248,13 +248,13 @@ func (h *PostHandler) TogglePublish(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
 		return
 	}
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
 	if err := h.togglePublish.Execute(c.Request.Context(), postuc.TogglePublishInput{
 		PostID:     c.Param("id"),
 		Published:  req.Published,
-		ActorID:    actorID.(string),
-		ActorEmail: actorEmail.(string),
+		ActorID:    actorID,
+		ActorEmail: actorEmail,
 	}); err != nil {
 		respondError(c, err)
 		return
@@ -276,10 +276,10 @@ func (h *PostHandler) TogglePublish(c *gin.Context) {
 // @Failure      500  {object}  errorResponse
 // @Router       /posts/{id} [delete]
 func (h *PostHandler) DeletePost(c *gin.Context) {
-	actorID, _ := c.Get(middleware.ContextKeyUserID)
-	actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+	actorID := c.GetString(middleware.ContextKeyUserID)
+	actorEmail := c.GetString(middleware.ContextKeyEmail)
 	if err := h.delete.Execute(c.Request.Context(),
-		c.Param("id"), actorID.(string), actorEmail.(string)); err != nil {
+		c.Param("id"), actorID, actorEmail); err != nil {
 		respondError(c, err)
 		return
 	}

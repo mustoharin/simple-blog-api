@@ -39,8 +39,8 @@ func NewProfileHandler(
 // @Failure      500  {object}  errorResponse
 // @Router       /me [get]
 func (h *ProfileHandler) GetMe(c *gin.Context) {
-	userID, _ := c.Get(middleware.ContextKeyUserID)
-	u, err := h.getMe.Execute(c.Request.Context(), userID.(string))
+	userID := c.GetString(middleware.ContextKeyUserID)
+	u, err := h.getMe.Execute(c.Request.Context(), userID)
 	if err != nil {
 		respondError(c, err)
 		return
@@ -73,9 +73,9 @@ func (h *ProfileHandler) UpdateMe(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
 		return
 	}
-	userID, _ := c.Get(middleware.ContextKeyUserID)
+	userID := c.GetString(middleware.ContextKeyUserID)
 	u, err := h.updateMe.Execute(c.Request.Context(), profile.UpdateMeInput{
-		UserID:      userID.(string),
+		UserID:      userID,
 		DisplayName: req.DisplayName,
 		Bio:         req.Bio,
 		AvatarURL:   req.AvatarURL,
@@ -112,10 +112,10 @@ func (h *ProfileHandler) ChangePassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
 		return
 	}
-	userID, _ := c.Get(middleware.ContextKeyUserID)
+	userID := c.GetString(middleware.ContextKeyUserID)
 	if err := h.changePassword.Execute(
 		c.Request.Context(),
-		userID.(string),
+		userID,
 		req.CurrentPassword,
 		req.NewPassword,
 	); err != nil {

@@ -96,13 +96,13 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
         c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
         return
     }
-    actorID, _ := c.Get(middleware.ContextKeyUserID)
-    actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+    actorID := c.GetString(middleware.ContextKeyUserID)
+    actorEmail := c.GetString(middleware.ContextKeyEmail)
     u, err := h.create.Execute(c.Request.Context(), user.CreateUserInput{
         Email:       req.Email,
         DisplayName: req.DisplayName,
-        ActorID:     actorID.(string),
-        ActorEmail:  actorEmail.(string),
+        ActorID:     actorID,
+        ActorEmail:  actorEmail,
     })
     if err != nil {
         respondError(c, err)
@@ -139,15 +139,15 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
         c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
         return
     }
-    actorID, _ := c.Get(middleware.ContextKeyUserID)
-    actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+    actorID := c.GetString(middleware.ContextKeyUserID)
+    actorEmail := c.GetString(middleware.ContextKeyEmail)
     u, err := h.update.Execute(c.Request.Context(), user.UpdateUserInput{
         ID:          c.Param("id"),
         DisplayName: req.DisplayName,
         Bio:         req.Bio,
         AvatarURL:   req.AvatarURL,
-        ActorID:     actorID.(string),
-        ActorEmail:  actorEmail.(string),
+        ActorID:     actorID,
+        ActorEmail:  actorEmail,
     })
     if err != nil {
         respondError(c, err)
@@ -170,10 +170,10 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Failure      500  {object}  errorResponse
 // @Router       /users/{id} [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
-    actorID, _ := c.Get(middleware.ContextKeyUserID)
-    actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+    actorID := c.GetString(middleware.ContextKeyUserID)
+    actorEmail := c.GetString(middleware.ContextKeyEmail)
     if err := h.delete.Execute(c.Request.Context(),
-        c.Param("id"), actorID.(string), actorEmail.(string)); err != nil {
+        c.Param("id"), actorID, actorEmail); err != nil {
         respondError(c, err)
         return
     }
@@ -206,10 +206,10 @@ func (h *UserHandler) AssignRole(c *gin.Context) {
         c.JSON(http.StatusBadRequest, errorResponse{err.Error(), "VALIDATION_ERROR"})
         return
     }
-    actorID, _ := c.Get(middleware.ContextKeyUserID)
-    actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+    actorID := c.GetString(middleware.ContextKeyUserID)
+    actorEmail := c.GetString(middleware.ContextKeyEmail)
     if err := h.assignRole.Execute(c.Request.Context(),
-        c.Param("id"), req.RoleID, actorID.(string), actorEmail.(string)); err != nil {
+        c.Param("id"), req.RoleID, actorID, actorEmail); err != nil {
         respondError(c, err)
         return
     }
@@ -231,10 +231,10 @@ func (h *UserHandler) AssignRole(c *gin.Context) {
 // @Failure      500  {object}  errorResponse
 // @Router       /users/{id}/roles/{roleId} [delete]
 func (h *UserHandler) RemoveRole(c *gin.Context) {
-    actorID, _ := c.Get(middleware.ContextKeyUserID)
-    actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+    actorID := c.GetString(middleware.ContextKeyUserID)
+    actorEmail := c.GetString(middleware.ContextKeyEmail)
     if err := h.removeRole.Execute(c.Request.Context(),
-        c.Param("id"), c.Param("roleId"), actorID.(string), actorEmail.(string)); err != nil {
+        c.Param("id"), c.Param("roleId"), actorID, actorEmail); err != nil {
         respondError(c, err)
         return
     }
@@ -256,10 +256,10 @@ func (h *UserHandler) RemoveRole(c *gin.Context) {
 // @Failure      500  {object}  errorResponse
 // @Router       /users/{id}/resend-invitation [post]
 func (h *UserHandler) ResendInvitation(c *gin.Context) {
-    actorID, _ := c.Get(middleware.ContextKeyUserID)
-    actorEmail, _ := c.Get(middleware.ContextKeyEmail)
+    actorID := c.GetString(middleware.ContextKeyUserID)
+    actorEmail := c.GetString(middleware.ContextKeyEmail)
     if err := h.resendInvitation.Execute(c.Request.Context(),
-        c.Param("id"), actorID.(string), actorEmail.(string)); err != nil {
+        c.Param("id"), actorID, actorEmail); err != nil {
         respondError(c, err)
         return
     }

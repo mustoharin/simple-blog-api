@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -36,6 +37,27 @@ func TestGetCaptchaConfig_Enabled(t *testing.T) {
 	assert.Equal(t, true, body["enabled"])
 	assert.Equal(t, "hcaptcha", body["provider"])
 	assert.Equal(t, "test-site-key-123", body["site_key"])
+}
+
+// TestLoginHandler_NoCaptchaToken_BindingDoesNotReject verifies that omitting
+// captcha_token from the login request body does NOT cause a 400 validation error.
+// If binding:"required" is ever re-added to CaptchaToken, this test will catch it.
+// (We get 500 from nil usecase pointer — that's fine; it proves binding accepted the request.)
+func TestLoginHandler_NoCaptchaToken_BindingDoesNotReject(t *testing.T) {
+	h := handler.NewAuthHandler(nil, nil, nil, nil, nil, nil, nil, false, "", "")
+
+	router := gin.New()
+	router.Use(gin.Recovery()) // catch nil-pointer panic on h.login.Execute
+	router.POST("/login", h.Login)
+
+	body := `{"email":"alice@example.com","password":"Str0ng&Pass#99"}`
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.NotEqual(t, http.StatusBadRequest, w.Code,
+		"captcha_token must not be required; binding must not reject login without it")
 }
 
 func TestGetCaptchaConfig_Disabled(t *testing.T) {

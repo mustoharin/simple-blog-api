@@ -2,6 +2,7 @@ package post
 
 import (
 	"context"
+	"fmt"
 
 	"simple-blog-api/internal/domain"
 )
@@ -41,13 +42,14 @@ func (uc *ListPostsUsecase) Execute(ctx context.Context, filter domain.PostFilte
 			postIDs[i] = p.ID
 		}
 		tagMap, err := uc.postTags.GetTagsForPosts(ctx, postIDs)
-		if err == nil {
-			for _, p := range posts {
-				if tags, ok := tagMap[p.ID]; ok {
-					p.Tags = tags
-				} else {
-					p.Tags = []domain.Tag{}
-				}
+		if err != nil {
+			return ListPostsOutput{}, fmt.Errorf("fetch post tags: %w", err)
+		}
+		for _, p := range posts {
+			if tags, ok := tagMap[p.ID]; ok {
+				p.Tags = tags
+			} else {
+				p.Tags = []domain.Tag{}
 			}
 		}
 	}

@@ -92,10 +92,14 @@ func TestVerify(t *testing.T) {
 }
 
 func TestValidate_HIBPRespectsContextCancellation(t *testing.T) {
-	// Slow test server that delays before responding
+	// Slow test server — exits early if the client disconnects (keeps test runtime ~20ms, not 500ms)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(500 * time.Millisecond)
-		fmt.Fprintln(w, "AABBCCDDEE:1")
+		select {
+		case <-r.Context().Done():
+			return
+		case <-time.After(500 * time.Millisecond):
+			fmt.Fprintln(w, "AABBCCDDEE:1")
+		}
 	}))
 	defer srv.Close()
 

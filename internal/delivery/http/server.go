@@ -35,6 +35,7 @@ func SetupRouter(deps RouterDeps) *gin.Engine {
 
 	authRoutes := v1.Group("/auth")
 	{
+		authRoutes.GET("/captcha-config", deps.Auth.GetCaptchaConfig)
 		authRoutes.POST("/register", deps.Auth.Register)
 		authRoutes.POST("/login", deps.Auth.Login)
 		authRoutes.POST("/refresh", deps.Auth.Refresh)

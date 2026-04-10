@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,7 +48,7 @@ func TestLoginHandler_NoCaptchaToken_BindingDoesNotReject(t *testing.T) {
 	h := handler.NewAuthHandler(nil, nil, nil, nil, nil, nil, nil, false, "", "")
 
 	router := gin.New()
-	router.Use(gin.Recovery()) // catch nil-pointer panic on h.login.Execute
+	router.Use(gin.RecoveryWithWriter(io.Discard)) // catch nil-pointer panic silently; we only care about the status code
 	router.POST("/login", h.Login)
 
 	body := `{"email":"alice@example.com","password":"Str0ng&Pass#99"}`

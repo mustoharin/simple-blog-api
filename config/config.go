@@ -26,6 +26,7 @@ type Config struct {
 	EmailFrom               string
 	CaptchaProvider         string
 	CaptchaSecret           string
+	CaptchaSiteKey          string
 	AllowedOrigins          []string
 	FrontendURL             string
 	AuditLogRetentionDays   int
@@ -54,6 +55,7 @@ func Load() *Config {
 		EmailFrom:               getEnv("EMAIL_FROM", ""),
 		CaptchaProvider:         getEnv("CAPTCHA_PROVIDER", "hcaptcha"),
 		CaptchaSecret:           getEnv("CAPTCHA_SECRET", ""),
+		CaptchaSiteKey:          getEnv("CAPTCHA_SITE_KEY", ""),
 		AllowedOrigins:          getSlice("ALLOWED_ORIGINS", []string{"*"}),
 		FrontendURL:             getEnv("FRONTEND_URL", "http://localhost:3000"),
 		AuditLogRetentionDays:   getInt("AUDIT_LOG_RETENTION_DAYS", 365),

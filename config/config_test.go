@@ -22,6 +22,7 @@ func TestLoad_Defaults(t *testing.T) {
 	assert.Equal(t, "hcaptcha", cfg.CaptchaProvider)
 	assert.Equal(t, "http://localhost:3000", cfg.FrontendURL)
 	assert.Equal(t, "us-east-1", cfg.S3Region)
+	assert.Equal(t, "", cfg.CaptchaSiteKey)
 }
 
 func TestLoad_EnvOverride(t *testing.T) {
@@ -54,6 +55,14 @@ func TestLoad_DurationEnvOverride(t *testing.T) {
 	cfg := config.Load()
 	assert.Equal(t, 30*time.Minute, cfg.JWTAccessExpiry)
 	assert.Equal(t, 720*time.Hour, cfg.JWTRefreshExpiry)
+}
+
+func TestLoad_CaptchaSiteKeyEnvOverride(t *testing.T) {
+	os.Setenv("CAPTCHA_SITE_KEY", "my-public-site-key")
+	defer os.Unsetenv("CAPTCHA_SITE_KEY")
+
+	cfg := config.Load()
+	assert.Equal(t, "my-public-site-key", cfg.CaptchaSiteKey)
 }
 
 func TestLoad_SliceEnvOverride(t *testing.T) {

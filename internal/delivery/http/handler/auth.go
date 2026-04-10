@@ -17,6 +17,9 @@ type AuthHandler struct {
 	forgotPassword   *auth.ForgotPasswordUsecase
 	resetPassword    *auth.ResetPasswordUsecase
 	acceptInvitation *auth.AcceptInvitationUsecase
+	captchaEnabled   bool
+	captchaProvider  string
+	captchaSiteKey   string
 }
 
 func NewAuthHandler(
@@ -27,6 +30,9 @@ func NewAuthHandler(
 	forgotPassword *auth.ForgotPasswordUsecase,
 	resetPassword *auth.ResetPasswordUsecase,
 	acceptInvitation *auth.AcceptInvitationUsecase,
+	captchaEnabled bool,
+	captchaProvider string,
+	captchaSiteKey string,
 ) *AuthHandler {
 	return &AuthHandler{
 		register:         register,
@@ -36,6 +42,9 @@ func NewAuthHandler(
 		forgotPassword:   forgotPassword,
 		resetPassword:    resetPassword,
 		acceptInvitation: acceptInvitation,
+		captchaEnabled:   captchaEnabled,
+		captchaProvider:  captchaProvider,
+		captchaSiteKey:   captchaSiteKey,
 	}
 }
 
@@ -261,4 +270,29 @@ func (h *AuthHandler) AcceptInvitation(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Invitation accepted, account activated"})
+}
+
+type captchaConfigResponse struct {
+	Enabled  bool   `json:"enabled"`
+	Provider string `json:"provider,omitempty"`
+	SiteKey  string `json:"site_key,omitempty"`
+}
+
+// GetCaptchaConfig godoc
+// @Summary      Get captcha configuration
+// @Description  Returns whether captcha is enabled and the public site key for the frontend to render the widget
+// @Tags         auth
+// @Produce      json
+// @Success      200  {object}  captchaConfigResponse
+// @Router       /auth/captcha-config [get]
+func (h *AuthHandler) GetCaptchaConfig(c *gin.Context) {
+	if !h.captchaEnabled {
+		c.JSON(http.StatusOK, captchaConfigResponse{Enabled: false})
+		return
+	}
+	c.JSON(http.StatusOK, captchaConfigResponse{
+		Enabled:  true,
+		Provider: h.captchaProvider,
+		SiteKey:  h.captchaSiteKey,
+	})
 }

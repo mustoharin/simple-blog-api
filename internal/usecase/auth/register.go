@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ func (uc *RegisterUsecase) Execute(ctx context.Context, in RegisterInput) error 
 
 	// Check for existing user
 	existing, err := uc.users.GetByEmail(ctx, in.Email)
-	if err != nil && err != domain.ErrNotFound {
+	if err != nil && !errors.Is(err, domain.ErrNotFound) {
 		return err
 	}
 	if existing != nil {

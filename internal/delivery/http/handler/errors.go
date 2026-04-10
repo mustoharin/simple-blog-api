@@ -20,6 +20,8 @@ func respondError(c *gin.Context, err error) {
 		c.JSON(http.StatusNotFound, errorResponse{"Resource not found", "NOT_FOUND"})
 	case errors.Is(err, domain.ErrEmailAlreadyExists):
 		c.JSON(http.StatusConflict, errorResponse{"Email already registered", "EMAIL_EXISTS"})
+	case errors.Is(err, domain.ErrSlugAlreadyExists):
+		c.JSON(http.StatusConflict, errorResponse{"Slug already exists", "SLUG_EXISTS"})
 	case errors.Is(err, domain.ErrInvalidCredentials):
 		c.JSON(http.StatusUnauthorized, errorResponse{"Invalid email or password", "INVALID_CREDENTIALS"})
 	case errors.Is(err, domain.ErrAccountNotActivated):

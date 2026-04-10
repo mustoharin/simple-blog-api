@@ -137,3 +137,29 @@ func TestLogin_InvalidCaptcha(t *testing.T) {
 	})
 	assert.ErrorIs(t, err, domain.ErrInvalidCaptcha)
 }
+
+func TestLogin_EmptyCaptchaToken_WhenNoopVerifier_Succeeds(t *testing.T) {
+	repo := new(mockUserRepo)
+	rtRepo := new(mockRefreshTokenRepo)
+	audit := new(mockAuditLogger)
+	captcha := new(mockCaptchaVerifier)
+
+	// Noop verifier: accepts any token including empty string
+	captcha.On("Verify", mock.Anything, "").Return(nil)
+
+	u := makeActiveUser(t)
+	repo.On("GetByEmail", mock.Anything, "alice@example.com").Return(u, nil)
+	repo.On("GetPermissions", mock.Anything, "u1").Return([]string{}, nil)
+	rtRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
+	repo.On("UpdateLastLogin", mock.Anything, "u1").Return(nil)
+	audit.On("Log", mock.Anything, mock.Anything).Return(nil)
+
+	uc := auth.NewLoginUsecase(repo, rtRepo, captcha, audit, "secret", 15*time.Minute, 30*24*time.Hour)
+	out, err := uc.Execute(context.Background(), auth.LoginInput{
+		Email:        "alice@example.com",
+		Password:     "Str0ng&Pass#99",
+		CaptchaToken: "", // empty — frontend sent no token because captcha is disabled
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, out.AccessToken)
+}

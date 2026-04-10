@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"strings"
 	"time"
 
@@ -69,7 +70,7 @@ func (uc *LoginUsecase) Execute(ctx context.Context, in LoginInput) (LoginOutput
 
 	user, err := uc.users.GetByEmail(ctx, in.Email)
 	if err != nil {
-		if err == domain.ErrNotFound {
+		if errors.Is(err, domain.ErrNotFound) {
 			_ = uc.audit.Log(ctx, &domain.AuditLog{
 				ID:         uuid.NewString(),
 				ActorEmail: in.Email,

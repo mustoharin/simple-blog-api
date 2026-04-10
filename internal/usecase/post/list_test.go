@@ -123,3 +123,19 @@ func TestListPosts_RelevanceSortPassedThrough(t *testing.T) {
 	postRepo.AssertExpectations(t)
 	postTagRepo.AssertNotCalled(t, "GetTagsForPosts", mock.Anything, mock.Anything)
 }
+
+func TestListPosts_RelevanceSort_NoQuery_ReturnsInvalidInput(t *testing.T) {
+	postRepo := new(mockPostRepo)
+	postTagRepo := new(mockPostTagRepo)
+
+	uc := post.NewListPostsUsecase(postRepo, postTagRepo)
+	_, err := uc.Execute(context.Background(), domain.PostFilter{
+		Sort:  "relevance",
+		Page:  1,
+		Limit: 20,
+	}, true)
+
+	assert.ErrorIs(t, err, domain.ErrInvalidInput)
+	postRepo.AssertNotCalled(t, "List", mock.Anything, mock.Anything, mock.Anything)
+}
+

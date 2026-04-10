@@ -31,6 +31,10 @@ func (uc *ListPostsUsecase) Execute(ctx context.Context, filter domain.PostFilte
 		filter.Limit = 20
 	}
 
+	if filter.Sort == "relevance" && filter.Query == "" {
+		return ListPostsOutput{}, domain.ErrInvalidInput
+	}
+
 	posts, total, err := uc.posts.List(ctx, filter, publicOnly)
 	if err != nil {
 		return ListPostsOutput{}, err

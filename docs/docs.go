@@ -224,6 +224,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/captcha-config": {
+            "get": {
+                "description": "Returns whether captcha is enabled and the public site key for the frontend to render the widget",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get captcha configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.captchaConfigResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/forgot-password": {
             "post": {
                 "description": "Sends a password reset email (always returns 200 to prevent enumeration)",
@@ -1099,8 +1119,13 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "enum": [
+                            "views",
+                            "comments",
+                            "relevance"
+                        ],
                         "type": "string",
-                        "description": "Sort order",
+                        "description": "Sort order ('relevance' requires ?q= to be set)",
                         "name": "sort",
                         "in": "query"
                     }
@@ -1111,6 +1136,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "422": {
+                        "description": "sort=relevance requires ?q=",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
                         }
                     },
                     "500": {
@@ -1185,7 +1216,7 @@ const docTemplate = `{
         },
         "/posts/{id}": {
             "get": {
-                "description": "Returns a single blog post by slug or UUID",
+                "description": "Returns a single published blog post by slug or UUID",
                 "produces": [
                     "application/json"
                 ],
@@ -1462,6 +1493,64 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/posts/{id}/preview": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a post by slug or UUID regardless of publish status. Requires post:edit permission.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "Preview a post (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug or UUID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Post"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handler.errorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/handler.errorResponse"
                         }
@@ -2605,6 +2694,20 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.captchaConfigResponse": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "site_key": {
+                    "type": "string"
+                }
+            }
+        },
         "handler.changePasswordRequest": {
             "type": "object",
             "required": [
@@ -2710,7 +2813,6 @@ const docTemplate = `{
         "handler.loginRequest": {
             "type": "object",
             "required": [
-                "captcha_token",
                 "email",
                 "password"
             ],

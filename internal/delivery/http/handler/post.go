@@ -48,8 +48,9 @@ func NewPostHandler(
 // @Param        q       query  string  false  "Search query"
 // @Param        tag     query  string  false  "Filter by tag"
 // @Param        author  query  string  false  "Filter by author ID"
-// @Param        sort    query  string  false  "Sort order"
+// @Param        sort    query  string  false  "Sort order ('relevance' requires ?q= to be set)"  Enums(views,comments,relevance)
 // @Success      200  {object}  map[string]interface{}
+// @Failure      422  {object}  errorResponse  "sort=relevance requires ?q="
 // @Failure      500  {object}  errorResponse
 // @Router       /posts [get]
 func (h *PostHandler) ListPosts(c *gin.Context) {

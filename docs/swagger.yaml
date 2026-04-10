@@ -272,6 +272,15 @@ definitions:
     required:
     - role_id
     type: object
+  handler.captchaConfigResponse:
+    properties:
+      enabled:
+        type: boolean
+      provider:
+        type: string
+      site_key:
+        type: string
+    type: object
   handler.changePasswordRequest:
     properties:
       current_password:
@@ -347,7 +356,6 @@ definitions:
       password:
         type: string
     required:
-    - captcha_token
     - email
     - password
     type: object
@@ -571,6 +579,20 @@ paths:
           schema:
             $ref: '#/definitions/handler.errorResponse'
       summary: Accept invitation
+      tags:
+      - auth
+  /auth/captcha-config:
+    get:
+      description: Returns whether captcha is enabled and the public site key for
+        the frontend to render the widget
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.captchaConfigResponse'
+      summary: Get captcha configuration
       tags:
       - auth
   /auth/forgot-password:
@@ -1134,7 +1156,11 @@ paths:
         in: query
         name: author
         type: string
-      - description: Sort order
+      - description: Sort order ('relevance' requires ?q= to be set)
+        enum:
+        - views
+        - comments
+        - relevance
         in: query
         name: sort
         type: string
@@ -1146,6 +1172,10 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "422":
+          description: sort=relevance requires ?q=
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -1232,7 +1262,7 @@ paths:
       tags:
       - posts
     get:
-      description: Returns a single blog post by slug or UUID
+      description: Returns a single published blog post by slug or UUID
       parameters:
       - description: Post slug or UUID
         in: path
@@ -1387,6 +1417,44 @@ paths:
       summary: Create a comment
       tags:
       - comments
+  /posts/{id}/preview:
+    get:
+      description: Returns a post by slug or UUID regardless of publish status. Requires
+        post:edit permission.
+      parameters:
+      - description: Post slug or UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Post'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorResponse'
+      security:
+      - BearerAuth: []
+      summary: Preview a post (admin)
+      tags:
+      - posts
   /posts/{id}/publish:
     patch:
       consumes:

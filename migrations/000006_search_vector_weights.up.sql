@@ -37,9 +37,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER post_tags_search_vector_trigger
+-- CREATE OR REPLACE TRIGGER requires PostgreSQL 14+ (this project uses PG 16).
+CREATE OR REPLACE TRIGGER post_tags_search_vector_trigger
 AFTER INSERT OR DELETE ON post_tags
 FOR EACH ROW EXECUTE FUNCTION post_tags_search_vector_update();
 
--- Backfill: fire the posts trigger for every existing row.
+-- Backfill: fire the posts BEFORE trigger for every existing row so search_vector
+-- is rebuilt with the new weighted function.
+-- NOTE: This locks all rows in posts for the duration of the migration. Acceptable
+-- for a blog with a small posts table; on large tables run this in batches out-of-band.
 UPDATE posts SET updated_at = updated_at;

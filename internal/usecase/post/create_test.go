@@ -57,6 +57,11 @@ func (m *mockPostTagRepo) GetTagsForPost(ctx context.Context, postID string) ([]
 	return args.Get(0).([]domain.Tag), args.Error(1)
 }
 
+func (m *mockPostTagRepo) GetTagsForPosts(ctx context.Context, postIDs []string) (map[string][]domain.Tag, error) {
+	args := m.Called(ctx, postIDs)
+	return args.Get(0).(map[string][]domain.Tag), args.Error(1)
+}
+
 type mockCommentRepo struct{ mock.Mock }
 
 func (m *mockCommentRepo) Create(ctx context.Context, c *domain.Comment) error {

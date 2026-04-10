@@ -62,6 +62,7 @@ type TagRepository interface {
 type PostTagRepository interface {
 	SetPostTags(ctx context.Context, postID string, tagIDs []string) error
 	GetTagsForPost(ctx context.Context, postID string) ([]Tag, error)
+	GetTagsForPosts(ctx context.Context, postIDs []string) (map[string][]Tag, error)
 }
 
 type CommentRepository interface {

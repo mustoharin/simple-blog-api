@@ -39,6 +39,39 @@ func (r *PostTagRepository) SetPostTags(ctx context.Context, postID string, tagI
 	return tx.Commit(ctx)
 }
 
+func (r *PostTagRepository) GetTagsForPosts(ctx context.Context, postIDs []string) (map[string][]domain.Tag, error) {
+	result := make(map[string][]domain.Tag, len(postIDs))
+	for _, id := range postIDs {
+		result[id] = []domain.Tag{}
+	}
+	if len(postIDs) == 0 {
+		return result, nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT pt.post_id, t.id, t.name, t.slug
+		FROM tags t JOIN post_tags pt ON t.id = pt.tag_id
+		WHERE pt.post_id = ANY($1)
+		ORDER BY t.name`, postIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get tags for posts: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var postID string
+		var t domain.Tag
+		if err := rows.Scan(&postID, &t.ID, &t.Name, &t.Slug); err != nil {
+			return nil, fmt.Errorf("scan post tags: %w", err)
+		}
+		result[postID] = append(result[postID], t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("get tags for posts scan: %w", err)
+	}
+	return result, nil
+}
+
 func (r *PostTagRepository) GetTagsForPost(ctx context.Context, postID string) ([]domain.Tag, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.id, t.name, t.slug

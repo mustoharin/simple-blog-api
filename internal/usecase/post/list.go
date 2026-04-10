@@ -35,9 +35,21 @@ func (uc *ListPostsUsecase) Execute(ctx context.Context, filter domain.PostFilte
 		return ListPostsOutput{}, err
 	}
 
-	for _, p := range posts {
-		tags, _ := uc.postTags.GetTagsForPost(ctx, p.ID)
-		p.Tags = tags
+	if len(posts) > 0 {
+		postIDs := make([]string, len(posts))
+		for i, p := range posts {
+			postIDs[i] = p.ID
+		}
+		tagMap, err := uc.postTags.GetTagsForPosts(ctx, postIDs)
+		if err == nil {
+			for _, p := range posts {
+				if tags, ok := tagMap[p.ID]; ok {
+					p.Tags = tags
+				} else {
+					p.Tags = []domain.Tag{}
+				}
+			}
+		}
 	}
 
 	return ListPostsOutput{

@@ -108,3 +108,18 @@ func TestListPosts_EmptyResult_NoBatchTagFetch(t *testing.T) {
 	assert.Empty(t, out.Posts)
 	postTagRepo.AssertNotCalled(t, "GetTagsForPosts", mock.Anything, mock.Anything)
 }
+
+func TestListPosts_RelevanceSortPassedThrough(t *testing.T) {
+	postRepo := new(mockPostRepo)
+	postTagRepo := new(mockPostTagRepo)
+
+	filter := domain.PostFilter{Query: "golang", Sort: "relevance", Page: 1, Limit: 20}
+	postRepo.On("List", mock.Anything, filter, true).Return([]*domain.Post{}, 0, nil)
+
+	uc := post.NewListPostsUsecase(postRepo, postTagRepo)
+	_, err := uc.Execute(context.Background(), filter, true)
+
+	assert.NoError(t, err)
+	postRepo.AssertExpectations(t)
+	postTagRepo.AssertNotCalled(t, "GetTagsForPosts", mock.Anything, mock.Anything)
+}

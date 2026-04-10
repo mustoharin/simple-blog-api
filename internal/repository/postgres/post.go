@@ -79,7 +79,9 @@ func (r *PostRepository) List(ctx context.Context, filter domain.PostFilter, pub
 	if publicOnly {
 		where += " AND p.status = 'published'"
 	}
+	var queryArgIdx int
 	if filter.Query != "" {
+		queryArgIdx = idx
 		where += fmt.Sprintf(" AND p.search_vector @@ plainto_tsquery('english', $%d)", idx)
 		args = append(args, filter.Query)
 		idx++
@@ -108,6 +110,8 @@ func (r *PostRepository) List(ctx context.Context, filter domain.PostFilter, pub
 		orderBy = "p.view_count DESC"
 	} else if filter.Sort == "comments" {
 		orderBy = "p.comment_count DESC"
+	} else if filter.Sort == "relevance" && queryArgIdx > 0 {
+		orderBy = fmt.Sprintf("ts_rank(p.search_vector, plainto_tsquery('english', $%d)) DESC", queryArgIdx)
 	}
 
 	page := filter.Page
